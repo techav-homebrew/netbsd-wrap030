@@ -31,7 +31,8 @@ maxusers	32
 
 #options 	LEDEBUG
 
-options 	FPSP
+options 	M68030
+#options 	FPSP
 
 # Standard system options
 options 	USERCONF	# userconf(4) support
@@ -53,9 +54,9 @@ options 	KTRACE		# system call tracing support
 options 	COMPAT_SUNOS
 
 # Filesystems
-#file-system 	FFS		# fast filesystem
+file-system 	FFS		# fast filesystem
 #file-system 	CD9660		# CD-ROM ISO-9660 filesystem
-file-system 	NFS		# Network filesystem client
+#file-system 	NFS		# Network filesystem client
 #file-system 	UNION		# Union filesystem (req. for FDESC)
 #file-system 	KERNFS		# kernel data-structure filesystem
 #file-system 	FDESC		# user file descriptor filesystem
@@ -64,6 +65,7 @@ file-system 	NFS		# Network filesystem client
 file-system	PTYFS		# /dev/pts/N support
 #file-system	TMPFS		# Efficient memory file-system
 #file-system	UDF		# experimental - OSTA UDF CD/DVD file-system
+file-system 	MSDOSFS		# FAT support
 
 # File system options
 #options 	QUOTA		# legacy UFS quotas
@@ -96,13 +98,13 @@ options 	COMPAT_M68K4K	# compat. with NetBSD/m68k4k binaries
 options 	COMPAT_AOUT_M68K # support for NetBSD a.out executables
 
 # Debugging options
-#options 	DIAGNOSTIC	# Extra kernel sanity checks
-#options 	DEBUG		# Enable misc. kernel debugging code
+options 	DIAGNOSTIC	# Extra kernel sanity checks
+options 	DEBUG		# Enable misc. kernel debugging code
 options 	DDB		# Kernel Dynamic Debugger
 #options 	KGDB
 makeoptions	DEBUG="-g"	# netbsd.gdb with full debugging symbols
 
-options 	NFS_BOOT_DHCP
+#options 	NFS_BOOT_DHCP
 
 config		netbsd root on ? type ?
 
@@ -111,16 +113,15 @@ mainbus0	at root		# root "bus"
 zsc*		at mainbus0
 zstty*		at zsc? channel ?
 
-le*		at mainbus0		# LANCE ethernet interfaces
+# le*		at mainbus0		# LANCE ethernet interfaces
 
-#
 # accept filters
-pseudo-device   accf_data		# "dataready" accept filter
-pseudo-device   accf_http		# "httpready" accept filter
+# pseudo-device   accf_data		# "dataready" accept filter
+# pseudo-device   accf_http		# "httpready" accept filter
 
 pseudo-device	pty			# pseudo ptys
-#pseudo-device	sl			# SLIP network interfaces
-#pseudo-device	ppp			# PPP network interfaces
+pseudo-device	sl			# SLIP network interfaces
+pseudo-device	ppp			# PPP network interfaces
 #pseudo-device	pppoe			# PPP over Ethernet (RFC 2516)
 #pseudo-device	bpfilter		# Berkeley packet filter
 pseudo-device	carp			# Common Address Redundancy Protocol
