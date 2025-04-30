@@ -60,7 +60,7 @@ __KERNEL_RCSID(0, "$NetBSD: zs.c,v 1.24 2021/09/11 20:28:03 andvar Exp $");
 #include <machine/cpu.h>
 
 #include <machine/z8530var.h>
-#include <cesfic/dev/zsvar.h>
+#include <wrap030/dev/zsvar.h>
 
 #include "ioconf.h"
 

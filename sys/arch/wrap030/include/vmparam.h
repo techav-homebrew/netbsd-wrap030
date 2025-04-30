@@ -42,7 +42,7 @@
 #define	_MACHINE_VMPARAM_H_
 
 /*
- * Machine dependent constants for cesfic
+ * Machine dependent constants for wrap030
  */
 
 /*
@@ -122,7 +122,7 @@
 
 /*
  * Constants which control the way the VM system deals with memory segments.
- * The cesfic only has one usable physical memory segment.
+ * The wrap030 only has one usable physical memory segment.
  */
 #define	VM_PHYSSEG_MAX		1
 #define	VM_PHYSSEG_STRAT	VM_PSTRAT_BSEARCH

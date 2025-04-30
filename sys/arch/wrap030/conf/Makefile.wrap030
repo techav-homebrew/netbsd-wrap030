@@ -1,15 +1,15 @@
-#	$NetBSD: Makefile.cesfic,v 1.20 2018/09/22 12:24:01 rin Exp $
+#	$NetBSD: Makefile.wrap030,v 1.20 2018/09/22 12:24:01 rin Exp $
 
 # Makefile for NetBSD
 #
 # This makefile is constructed from a machine description:
 #	config machineid
 # Most changes should be made in the machine description
-#	/sys/arch/cesfic/conf/``machineid''
+#	/sys/arch/wrap030/conf/``machineid''
 # after which you should do
 #	config machineid
 # Machine generic makefile changes should be made in
-#	/sys/arch/cesfic/conf/Makefile.cesfic
+#	/sys/arch/wrap030/conf/Makefile.wrap030
 # after which config should be rerun for all machines of that type.
 #
 # To specify debugging, add the config line: makeoptions DEBUG="-g"
@@ -25,13 +25,13 @@ NEED_OWN_INSTALL_TARGET?=no
 ##
 ## (1) port identification
 ##
-CESFIC=		$S/arch/cesfic
-GENASSYM_CONF=	${CESFIC}/cesfic/genassym.cf
+CESFIC=		$S/arch/wrap030
+GENASSYM_CONF=	${CESFIC}/wrap030/genassym.cf
 
 ##
 ## (2) compile settings
 ##
-CPPFLAGS+=	-Dcesfic
+CPPFLAGS+=	-Dwrap030
 CWARNFLAGS+=	-Wno-format
 CFLAGS+=	-msoft-float
 AFLAGS+=	-x assembler-with-cpp
@@ -51,9 +51,9 @@ OPT_MODULAR=	%MODULAR%
 MD_OBJS=	locore.o
 MD_LIBS=	${FPSP}
 MD_CFILES=
-MD_SFILES=	${CESFIC}/cesfic/locore.s
+MD_SFILES=	${CESFIC}/wrap030/locore.s
 
-locore.o: ${CESFIC}/cesfic/locore.s assym.h
+locore.o: ${CESFIC}/wrap030/locore.s assym.h
 	${NORMAL_S}
 
 ##

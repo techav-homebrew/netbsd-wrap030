@@ -1,9 +1,9 @@
-#	$NetBSD: std.cesfic,v 1.5 2010/09/19 02:09:27 tsutsui Exp $
+#	$NetBSD: std.wrap030,v 1.5 2010/09/19 02:09:27 tsutsui Exp $
 #
-# Options/devices that all cesfics should have
+# Options/devices that all wrap030s should have
 #
 
-machine cesfic m68k
+machine wrap030 m68k
 include		"conf/std"			# MI standard options
 include		"arch/m68k/conf/std.m68k"	# m68k standard options
 

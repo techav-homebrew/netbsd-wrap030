@@ -45,7 +45,7 @@ __KERNEL_RCSID(0, "$NetBSD: isr.c,v 1.19 2021/04/02 12:11:41 rin Exp $");
 
 #include <uvm/uvm_extern.h>
 
-#include <cesfic/cesfic/isr.h>
+#include <wrap030/wrap030/isr.h>
 
 typedef LIST_HEAD(, isr) isr_list_t;
 isr_list_t isr_list[NISR];

@@ -51,7 +51,7 @@ __KERNEL_RCSID(0, "$NetBSD: autoconf.c,v 1.29 2021/08/07 16:18:47 thorpej Exp $"
 #include <machine/pte.h>
 #include <m68k/cacheops.h>
 
-#include <cesfic/cesfic/isr.h>
+#include <wrap030/wrap030/isr.h>
 
 u_int	bootdev;
 

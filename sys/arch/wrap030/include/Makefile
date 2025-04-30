@@ -1,6 +1,6 @@
 #	$NetBSD: Makefile,v 1.12 2018/07/12 10:46:42 maxv Exp $
 
-INCSDIR= /usr/include/cesfic
+INCSDIR= /usr/include/wrap030
 
 INCS=	ansi.h aout_machdep.h asm.h \
 	bswap.h \

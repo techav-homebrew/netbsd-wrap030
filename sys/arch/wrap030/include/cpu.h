@@ -55,7 +55,7 @@
 
 /*
  * Arguments to hardclock and gatherstats encapsulate the previous
- * machine state in an opaque clockframe.  On the cesfic, we use
+ * machine state in an opaque clockframe.  On the wrap030, we use
  * what the hardware pushes on an interrupt (frame format 0).
  */
 struct clockframe {
@@ -86,7 +86,7 @@ struct clockframe {
 
 /*
  * Give a profiling tick to the current process when the user profiling
- * buffer pages are invalid.  On the cesfic, request an ast to send us
+ * buffer pages are invalid.  On the wrap030, request an ast to send us
  * through trap, marking the proc as needing a profiling tick.
  */
 #define	cpu_need_proftick(l)	\

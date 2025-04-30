@@ -107,7 +107,7 @@ GLOBAL(kernel_text)
 	.space	PAGE_SIZE
 ASLOCAL(tmpstk)
 
-#include <cesfic/cesfic/vectors.s>
+#include <wrap030/wrap030/vectors.s>
 
 	.text
 

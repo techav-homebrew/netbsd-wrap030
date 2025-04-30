@@ -55,7 +55,7 @@ __KERNEL_RCSID(0, "$NetBSD: if_le.c,v 1.7 2008/04/04 12:25:06 tsutsui Exp $");
 #include <dev/ic/am79900reg.h>
 #include <dev/ic/am79900var.h>
 
-#include <cesfic/cesfic/isr.h>
+#include <wrap030/wrap030/isr.h>
 
 int lematch(device_t, cfdata_t, void *);
 void leattach(device_t, device_t, void *);
@@ -117,7 +117,7 @@ leattach(device_t parent, device_t self, void *aux)
 	sc->sc_addr = 0x4c000000;
 	sc->sc_memsize = 64 * 1024;
 
-	if (cesfic_getetheraddr(sc->sc_enaddr)) {
+	if (wrap030_getetheraddr(sc->sc_enaddr)) {
 		/* fallback */
 		for (i = 0; i < sizeof(sc->sc_enaddr); i++) {
 			sc->sc_enaddr[i] = hwa[i];

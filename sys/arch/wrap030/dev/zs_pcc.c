@@ -48,9 +48,9 @@ __KERNEL_RCSID(0, "$NetBSD: zs_pcc.c,v 1.9 2008/03/29 19:15:34 tsutsui Exp $");
 #include <machine/cpu.h>
 #include <machine/autoconf.h>
 
-#include <cesfic/cesfic/isr.h>
+#include <wrap030/wrap030/isr.h>
 
-#include <cesfic/dev/zsvar.h>
+#include <wrap030/dev/zsvar.h>
 
 extern void sic_enable_int(int, int, int, int, int);
 

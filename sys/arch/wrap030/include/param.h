@@ -42,8 +42,8 @@
 /*
  * Machine dependent constants for CES FIC8234.
  */
-#define	_MACHINE	cesfic
-#define	MACHINE		"cesfic"
+#define	_MACHINE	wrap030
+#define	MACHINE		"wrap030"
 
 /*
  * Round p (pointer or byte index) up to a correctly-aligned value for all

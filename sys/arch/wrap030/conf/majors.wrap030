@@ -1,6 +1,6 @@
-#	$NetBSD: majors.cesfic,v 1.23 2020/04/04 16:06:12 jdolecek Exp $
+#	$NetBSD: majors.wrap030,v 1.23 2020/04/04 16:06:12 jdolecek Exp $
 #
-# Device majors for cesfic
+# Device majors for wrap030
 #
 
 device-major	cons		char 0

@@ -95,7 +95,7 @@ __KERNEL_RCSID(0, "$NetBSD: machdep.c,v 1.72 2021/10/09 20:00:41 tsutsui Exp $")
 #include <dev/mm.h>
 #include <dev/ic/z8530reg.h>
 #include <machine/z8530var.h>
-#include <cesfic/dev/zsvar.h>
+#include <wrap030/dev/zsvar.h>
 
 #include "ksyms.h"
 

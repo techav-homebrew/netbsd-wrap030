@@ -1,6 +1,6 @@
-#	$NetBSD: files.cesfic,v 1.18 2019/02/18 01:12:22 thorpej Exp $
+#	$NetBSD: files.wrap030,v 1.18 2019/02/18 01:12:22 thorpej Exp $
 #
-# cesfic-specific configuration info
+# wrap030-specific configuration info
 
 # maxpartitions must be the first item in files.${ARCH}
 maxpartitions 8
@@ -19,20 +19,20 @@ maxusers 2 8 64
 device	mainbus { }
 attach	mainbus at root
 
-file	arch/cesfic/cesfic/sic6351.c
-file	arch/cesfic/cesfic/clk_dp8570a.c
-file	arch/cesfic/cesfic/eeprom.c
+file	arch/wrap030/wrap030/sic6351.c
+file	arch/wrap030/wrap030/clk_dp8570a.c
+file	arch/wrap030/wrap030/eeprom.c
 
 #
 # devices
 #
 
 device zsc { channel = -1 }
-file arch/cesfic/dev/zs.c			zsc
+file arch/wrap030/dev/zs.c			zsc
 file dev/ic/z8530sc.c				zsc
 
 attach zsc at mainbus with zsc_pcc
-file arch/cesfic/dev/zs_pcc.c		zsc_pcc needs-flag
+file arch/wrap030/dev/zs_pcc.c		zsc_pcc needs-flag
 
 device zstty: tty
 attach zstty at zsc
@@ -42,19 +42,19 @@ file dev/ic/z8530tty.c				zstty needs-flag
 #device lex: arp, ether, ifnet
 #attach	lex at mainbus
 attach le at mainbus: le32
-file	arch/cesfic/dev/if_le.c		le
-#file	arch/cesfic/dev/am79900.c		lex
+file	arch/wrap030/dev/if_le.c		le
+#file	arch/wrap030/dev/am79900.c		lex
 
 #
 # Non-device files
 #
 
-file	arch/cesfic/cesfic/autoconf.c
-file	arch/cesfic/cesfic/clock.c
-file	arch/cesfic/cesfic/machdep.c
-file	arch/cesfic/cesfic/isr.c
-file	arch/cesfic/cesfic/pmap_bootstrap.c
-file	arch/cesfic/cesfic/trap.c
+file	arch/wrap030/wrap030/autoconf.c
+file	arch/wrap030/wrap030/clock.c
+file	arch/wrap030/wrap030/machdep.c
+file	arch/wrap030/wrap030/isr.c
+file	arch/wrap030/wrap030/pmap_bootstrap.c
+file	arch/wrap030/wrap030/trap.c
 file	arch/m68k/m68k/cacheops.c
 file	arch/m68k/m68k/db_memrw.c		ddb | kgdb
 file	arch/m68k/m68k/kgdb_machdep.c		kgdb
@@ -73,4 +73,4 @@ include "compat/aoutm68k/files.aoutm68k"
 include	"compat/sunos/files.sunos"
 file	arch/m68k/m68k/sunos_machdep.c	compat_sunos
 
-include "arch/cesfic/conf/majors.cesfic"
+include "arch/wrap030/conf/majors.wrap030"

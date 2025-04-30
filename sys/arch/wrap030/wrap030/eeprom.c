@@ -125,7 +125,7 @@ static struct EEPROMData eeprom;
 static int eeprom_read;
 
 int
-cesfic_getetheraddr(unsigned char *buf)
+wrap030_getetheraddr(unsigned char *buf)
 {
 	int res;
 
