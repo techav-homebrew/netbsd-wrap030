@@ -1,3 +1,3 @@
-/*	$NetBSD: psl.h,v 1.5 1994/10/26 07:26:39 cgd Exp $	*/
+/* $NetBSD: psl.h,v 1.1 2001/05/14 18:23:13 drochner Exp $ */
 
 #include <m68k/psl.h>

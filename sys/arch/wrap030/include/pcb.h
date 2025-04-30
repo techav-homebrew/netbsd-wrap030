@@ -1,3 +1,3 @@
-/*	$NetBSD: pcb.h,v 1.9 1997/03/31 21:39:51 gwr Exp $	*/
+/* $NetBSD: pcb.h,v 1.1 2001/05/14 18:23:13 drochner Exp $ */
 
 #include <m68k/pcb.h>

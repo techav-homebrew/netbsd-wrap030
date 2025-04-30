@@ -1,4 +1,4 @@
-/*	$NetBSD: vmparam.h,v 1.41 2020/02/01 19:41:49 tsutsui Exp $	*/
+/*	$NetBSD: vmparam.h,v 1.19 2020/02/01 19:41:49 tsutsui Exp $	*/
 
 /*
  * Copyright (c) 1988 University of Utah.
@@ -38,11 +38,11 @@
  *	@(#)vmparam.h	8.2 (Berkeley) 4/19/94
  */
 
-#ifndef _WRAP030_VMPARAM_H_
-#define	_WRAP030_VMPARAM_H_
+#ifndef _MACHINE_VMPARAM_H_
+#define	_MACHINE_VMPARAM_H_
 
 /*
- * Machine dependent constants for WRAP030
+ * Machine dependent constants for cesfic
  */
 
 /*
@@ -73,14 +73,24 @@
 #define	DFLDSIZ		(32*1024*1024)		/* initial data size limit */
 #endif
 #ifndef MAXDSIZ
-#define	MAXDSIZ		(256*1024*1024)		/* max data size */
+#define	MAXDSIZ		(64*1024*1024)		/* max data size */
 #endif
 #ifndef	DFLSSIZ
-#define	DFLSSIZ		(2*1024*1024)		/* initial stack size limit */
+#define	DFLSSIZ		(512*1024)		/* initial stack size limit */
 #endif
 #ifndef	MAXSSIZ
 #define	MAXSSIZ		MAXDSIZ			/* max stack size */
 #endif
+
+/*
+ * Default sizes of swap allocation chunks (see dmap.h).
+ * The actual values may be changed in vminit() based on MAXDSIZ.
+ * With MAXDSIZ of 16Mb and NDMAP of 38, dmmax will be 1024.
+ * DMMIN should be at least ctod(1) so that vtod() works.
+ * vminit() insures this.
+ */
+#define	DMMIN	32			/* smallest swap allocation */
+#define	DMMAX	4096			/* largest potential swap allocation */
 
 /*
  * PTEs for mapping user space into the kernel for phyio operations.
@@ -91,16 +101,6 @@
 #endif
 
 /*
- * External IO space map size.
- * By default we make it large enough to map up to 3 DIO-II devices and
- * the complete DIO space.  For a 320-only configuration (which has no
- * DIO-II) you could define a considerably smaller region.
- */
-#ifndef EIOMAPSIZE
-#define EIOMAPSIZE	3584		/* 14mb */
-#endif
-
-/*
  * Mach derived constants
  */
 
@@ -108,7 +108,7 @@
 #define VM_MIN_ADDRESS		((vaddr_t)0)
 #define VM_MAXUSER_ADDRESS	((vaddr_t)0xFFF00000)
 #define VM_MAX_ADDRESS		((vaddr_t)0xFFF00000)
-#define VM_MIN_KERNEL_ADDRESS	((vaddr_t)0)
+#define VM_MIN_KERNEL_ADDRESS	((vaddr_t)0x00002000)
 #define VM_MAX_KERNEL_ADDRESS	((vaddr_t)(0-PAGE_SIZE*NPTEPG*2))
 
 /* virtual sizes (bytes) for various kernel submaps */
@@ -117,9 +117,12 @@
 /* # of kernel PT pages (initial only, can grow dynamically) */
 #define VM_KERNEL_PT_PAGES	((vsize_t)2)
 
+/* Use new VM page bootstrap interface. */
+#define	MACHINE_NEW_NONCONTIG
+
 /*
  * Constants which control the way the VM system deals with memory segments.
- * The wrap030 only has one physical memory segment.
+ * The cesfic only has one usable physical memory segment.
  */
 #define	VM_PHYSSEG_MAX		1
 #define	VM_PHYSSEG_STRAT	VM_PSTRAT_BSEARCH
@@ -136,4 +139,4 @@ struct pmap_physseg {
 	struct pv_header *pvheader;	/* pv table for this seg */
 };
 
-#endif /* _WRAP030_VMPARAM_H_ */
+#endif /* _MACHINE_VMPARAM_H_ */

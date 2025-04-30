@@ -1,3 +1,3 @@
-/*	$NetBSD: math.h,v 1.1 1999/12/23 10:15:11 kleink Exp $	*/
+/* $NetBSD: math.h,v 1.1 2001/05/14 18:23:12 drochner Exp $ */
 
 #include <m68k/math.h>

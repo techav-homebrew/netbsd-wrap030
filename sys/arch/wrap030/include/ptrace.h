@@ -1,4 +1,3 @@
-/*	$NetBSD: ptrace.h,v 1.2 1994/10/26 07:26:42 cgd Exp $	*/
+/* $NetBSD: ptrace.h,v 1.1 2001/05/14 18:23:14 drochner Exp $ */
 
-/* Just use the common m68k definition */
 #include <m68k/ptrace.h>

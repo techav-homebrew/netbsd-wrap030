@@ -1,4 +1,4 @@
-/*	$NetBSD: param.h,v 1.53 2012/02/10 17:35:49 para Exp $	*/
+/*	$NetBSD: param.h,v 1.13 2017/01/14 22:24:43 christos Exp $	*/
 
 /*
  * Copyright (c) 1988 University of Utah.
@@ -37,24 +37,34 @@
  *
  *	@(#)param.h	8.1 (Berkeley) 6/10/93
  */
-
-#ifndef	_WRAP030_PARAM_H_
-#define	_WRAP030_PARAM_H_
+#ifndef _MACHINE_PARAM_H_
+#define _MACHINE_PARAM_H_
+/*
+ * Machine dependent constants for CES FIC8234.
+ */
+#define	_MACHINE	cesfic
+#define	MACHINE		"cesfic"
 
 /*
- * Machine dependent constants for HP9000 series 300.
+ * Round p (pointer or byte index) up to a correctly-aligned value for all
+ * data types (int, long, ...).   The result is u_int and must be cast to
+ * any desired pointer type.
+ *
+ * ALIGNED_POINTER is a boolean macro that checks whether an address
+ * is valid to fetch data elements of type t from on this architecture.
+ * This does not reflect the optimal alignment, just the possibility
+ * (within reasonable limits). 
+ *
  */
-#define	_MACHINE	wrap030
-#define	MACHINE		"wrap030"
 
 #define	PGSHIFT		12		/* LOG2(NBPG) */
-#define	KERNBASE	0x00000000	/* start of kernel virtual */
+#define	NPTEPG		(NBPG/(sizeof (pt_entry_t)))
+
+#define	KERNBASE	0x00002000	/* start of kernel virtual */
 
 #define	UPAGES		2		/* pages of u-area */
 
 #include <m68k/param.h>
-
-#define	NPTEPG		(NBPG/(sizeof (pt_entry_t)))
 
 /*
  * Minimum and maximum sizes of the kernel malloc arena in PAGE_SIZE-sized
@@ -63,13 +73,15 @@
 #define	NKMEMPAGES_MIN_DEFAULT	((8 * 1024 * 1024) >> PAGE_SHIFT)
 #define	NKMEMPAGES_MAX_DEFAULT	((128 * 1024 * 1024) >> PAGE_SHIFT)
 
-#if defined(_KERNEL) && !defined(_LOCORE)
+/*
+ * Interrupt glue.
+ */
 #include <machine/intr.h>
 
+#if defined(_KERNEL) && !defined(_LOCORE)
 #define	delay(us)	_delay((us) << 8)
 #define DELAY(us)	delay(us)
 
 void	_delay(u_int);
 #endif /* _KERNEL && !_LOCORE */
-
-#endif	/* !_WRAP030_PARAM_H_ */
+#endif /* _MACHINE_PARAM_H_ */

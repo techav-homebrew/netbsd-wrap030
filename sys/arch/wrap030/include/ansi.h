@@ -1,3 +1,3 @@
-/*	$NetBSD: ansi.h,v 1.5 2019/05/07 03:49:26 kamil Exp $	*/
+/* $NetBSD: ansi.h,v 1.1 2001/05/14 18:23:08 drochner Exp $ */
 
 #include <m68k/ansi.h>
