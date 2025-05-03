@@ -113,6 +113,15 @@ mainbus0	at root		# root "bus"
 zsc*		at mainbus0
 zstty*		at zsc? channel ?
 
+com0 		at mainbus0
+com1 		at mainbus0
+com2		at mainbus0
+com3		at mainbus0
+com4 		at mainbus0
+com5 		at mainbus0
+com6 		at mainbus0
+com7		at mainbus0
+
 # le*		at mainbus0		# LANCE ethernet interfaces
 
 # accept filters

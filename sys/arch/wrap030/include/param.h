@@ -40,7 +40,7 @@
 #ifndef _MACHINE_PARAM_H_
 #define _MACHINE_PARAM_H_
 /*
- * Machine dependent constants for CES FIC8234.
+ * Machine dependent constants for WRAP030.
  */
 #define	_MACHINE	wrap030
 #define	MACHINE		"wrap030"

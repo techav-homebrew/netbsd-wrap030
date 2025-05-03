@@ -22,6 +22,9 @@ device-major	md		char 15  block 3	md
 device-major	raid		char 16  block 5	raid
 device-major	sd		char 17  block 6	sd
 
+# adding 16550 drivers
+device-major    com             char 18                 com
+
 device-major	rnd		char 21			rnd
 device-major	clockctl	char 22			clockctl
 #device-major	obsolete	char 23			obsolete (systrace)

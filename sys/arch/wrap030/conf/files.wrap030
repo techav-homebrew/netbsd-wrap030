@@ -38,6 +38,9 @@ device zstty: tty
 attach zstty at zsc
 file dev/ic/z8530tty.c				zstty needs-flag
 
+attach com at mainbus with com_mainbus
+file arch/wrap030/dev/com_mainbus.c		com_mainbus
+
 # LANCE ethernet
 #device lex: arp, ether, ifnet
 #attach	lex at mainbus
