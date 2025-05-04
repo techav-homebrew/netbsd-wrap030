@@ -125,9 +125,12 @@ ASLOCAL(tmpstk)
 /*
  * Initialization
  *
- * A4 contains the address of the end of the symtab
- * A5 contains physical load point from boot
- * VBR contains zero from ROM.  Exceptions will continue to vector
+ * A4 should contain the address of the end of the symtab
+ *     not supported by wrap030 bootloader
+ * A5 should contain physical load point from boot
+ *     not supported by wrap030 bootloader
+ *     wrap030 bootloader loads to address 0
+ * VBR points to ROM from bootloader.  Exceptions will continue to vector
  * through ROM until MMU is turned on at which time they will vector
  * through our table (vectors.s).
  */
@@ -142,16 +145,8 @@ ASENTRY_NOPROFILE(start)
 	movc	%d0, %cacr		| clear and disable on-chip cache(s)
 
 	/* XXX fixed load address */
-	movl	#0x20100000, %a5
-
-	movl	#0x20000000, %a0
-	RELOC(edata, %a1)
-1:
-	movl	%a5@+, %a0@+
-	cmpl	%a5, %a1
-	bne	1b
-
-	movl	#0x20000000, %a5
+	/* wrap030 bootloader loads to address 0  */
+	movl 	#0,%a5 			|; 
 
 	ASRELOC(tmpstk, %a0)
 	movl	%a0, %sp		| give ourselves a temporary stack
@@ -223,6 +218,12 @@ Lstart1:
 	movc	%d0,%dfc		|   and destination of transfers
 
 /* initialize memory size (for pmap_bootstrap) */
+/* 
+ * going to do a dumb and hard-code this to 16MB for now.
+ * eventually, need to come up with a way to determine how much memory is
+ * actually installed, just in case there is something other than 16MB
+ */
+/*
 	movl	0x5c00ac00, %d0
 	andb	#0x60, %d0
 	jne	Lnot8M
@@ -236,6 +237,8 @@ Lnot8M:
 Lunkmem:
 	/* ??? */
 	movl	#0x20400000, %d1	| memory end, assume at least 4M
+*/
+	movl 	#0x01000000,%d1 	|; wrap030 memory end, 16MB
 	
 Lmemok:
 	moveq	#PGSHIFT,%d2

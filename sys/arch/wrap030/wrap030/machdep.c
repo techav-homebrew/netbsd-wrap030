@@ -74,6 +74,8 @@ __KERNEL_RCSID(0, "$NetBSD: machdep.c,v 1.72 2021/10/09 20:00:41 tsutsui Exp $")
 #include <sys/cpu.h>
 #include <sys/kgdb.h>
 
+#include <sys/bus.h>
+
 #include <machine/db_machdep.h>
 #include <ddb/db_sym.h>
 #include <ddb/db_extern.h>
@@ -85,7 +87,7 @@ __KERNEL_RCSID(0, "$NetBSD: machdep.c,v 1.72 2021/10/09 20:00:41 tsutsui Exp $")
 #include <machine/psl.h>
 #include <machine/pte.h>
 
-#define	MAXMEM	64*1024	/* XXX - from cmap.h */
+#define	MAXMEM	16*1024	/* XXX - from cmap.h */
 
 #include <uvm/uvm_extern.h>
 
@@ -93,11 +95,19 @@ __KERNEL_RCSID(0, "$NetBSD: machdep.c,v 1.72 2021/10/09 20:00:41 tsutsui Exp $")
 #include <sys/device.h>
 #include <dev/cons.h>
 #include <dev/mm.h>
+
+/*
 #include <dev/ic/z8530reg.h>
 #include <machine/z8530var.h>
 #include <wrap030/dev/zsvar.h>
+*/
+
+#include <dev/ic/comreg.h>
+#include <dev/ic/comvar.h>
 
 #include "ksyms.h"
+
+#define COMFREQ 1843200
 
 /* the following is used externally (sysctl_hw) */
 char machine[] = MACHINE;		/* CPU "architecture" */
@@ -151,10 +161,12 @@ void fic_init(void)
 	/*
 	 * map and init interrupt controller
 	 */
+	/*
 	physaccess((void*)virtual_avail, (void*)0x44000000,
 	    PAGE_SIZE, PG_RW|PG_CI);
 	sicinit((void*)virtual_avail);
 	virtual_avail += PAGE_SIZE;
+	*/
 
 	/*
 	 * Initialize error message buffer (at end of core).
@@ -168,6 +180,7 @@ void fic_init(void)
 	initmsgbuf(msgbufaddr, m68k_round_page(MSGBUFSIZE));
 }
 
+/*
 int
 zs_check_kgdb(struct zs_chanstate *cs, int dev)
 {
@@ -187,6 +200,7 @@ int zs_kgdb_cngetc(dev_t dev)
 {
 	return (zscngetc(dev));
 }
+*/
 
 /*
  * Console initialization: called early on from main,
@@ -201,8 +215,12 @@ consinit(void)
 	/*
 	 * Initialize the console before we print anything out.
 	 */
+	/* i'm not entirely sure what we should be giving this here ... */
+	comcnattach((bus_space_tag_t)0x80000000,
+	    (bus_addr_t)0x00300000, 9600, COMFREQ, COM_TYPE_NORMAL, (CREAD | CS8));
+	/*
 	physaccess((void*)virtual_avail,
-	    (void*)0x58000000, PAGE_SIZE, PG_RW|PG_CI);
+	    (void*)0x80300000, PAGE_SIZE, PG_RW|PG_CI);
 	zs_cnattach((void*)virtual_avail);
 	virtual_avail += PAGE_SIZE;
 
@@ -216,11 +234,12 @@ consinit(void)
 		zscons.cn_getc = zs_kgdb_cngetc;
 	}
 #endif
+	*/
 #ifdef DDB
 	if (boothowto & RB_KDB)
 		Debugger();
 #endif
-	sic_enable_int(39, 2, 1, 7, 0); /* NMI */
+	/*sic_enable_int(39, 2, 1, 7, 0);*/ /* NMI */
 }
 
 /*
@@ -238,7 +257,7 @@ cpu_startup(void)
 	pmapdebug = 0;
 #endif
 
-	cpu_setmodel("FIC8234");
+	cpu_setmodel("WRAP030");
 	if (fputype != FPU_NONE)
 		m68k_make_fpu_idle_frame();
 
