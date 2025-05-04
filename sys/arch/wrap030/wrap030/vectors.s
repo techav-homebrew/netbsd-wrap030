@@ -35,8 +35,19 @@
 GLOBAL(vectab)
 	VECTOR_UNUSED		/* 0: NOT USED (reset SSP) */
 	VECTOR_UNUSED		/* 1: NOT USED (reset PC) */
+#if defined(M68040)
 	VECTOR(buserr40)	/* 2: bus error */
+#endif
+#if defined(M68060)
+	VECTOR(buserr60)	/* 2: bus error */
+#endif
+#if defined(M68040) || defined(M68060)
 	VECTOR(addrerr4060)	/* 3: address error */
+#endif
+#if defined(M68030) || defined(M68020)
+	VECTOR(busaddrerr2030)	/* 2: bus error */
+	VECTOR(busaddrerr2030)	/* 3: address error */
+#endif
 	VECTOR(illinst)		/* 4: illegal instruction */
 	VECTOR(zerodiv)		/* 5: zero divide */
 	VECTOR(chkinst)		/* 6: CHK instruction */

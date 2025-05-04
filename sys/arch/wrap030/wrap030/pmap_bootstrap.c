@@ -384,8 +384,12 @@ pmap_bootstrap(paddr_t nextpa, paddr_t firstpa)
 	RELOC(Sysseg, st_entry_t *) =
 		(st_entry_t *)(kstpa - firstpa + KERNBASE);
 	RELOC(Sysseg_pa, paddr_t) = kstpa;
+#if defined(M68040) || defined(M68060)
+	/* other m68k ports have this section qualified by if defined(M68040) ...
+	 * .. it's missing from cesfic, so I'm adding it back */
 	if (RELOC(mmutype, int) == MMU_68040)
 		RELOC(protostfree, u_int) = stfree;
+#endif
 	/*
 	 * Sysptmap: base of kernel page table map
 	 */

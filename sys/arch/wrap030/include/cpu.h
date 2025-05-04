@@ -101,9 +101,18 @@ struct clockframe {
 extern int astpending;		/* need to trap before returning to user mode */
 #define aston() (astpending++)
 
+/*
 #ifndef M68040
 #define	M68040
-#endif /* ! M68040 */
+#endif */
+/* ! M68040 */
+
+/* force 68030 */
+#ifndef M68030
+#define M68030
+#undef 	M68040
+#endif
+
 
 #ifndef M68K_MMU_MOTOROLA
 #define	M68K_MMU_MOTOROLA
