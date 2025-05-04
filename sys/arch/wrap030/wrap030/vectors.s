@@ -72,9 +72,9 @@ GLOBAL(vectab)
 	VECTOR(intrhand)	/* 25: level 1 interrupt autovector */
 	VECTOR(intrhand)	/* 26: level 2 interrupt autovector */
 	VECTOR(intrhand)	/* 27: level 3 interrupt autovector */
-	VECTOR(intrhand)	/* 28: level 4 interrupt autovector */
+	VECTOR(clockintr)	/* 28: level 4 interrupt autovector */
 	VECTOR(intrhand)	/* 29: level 5 interrupt autovector */
-	VECTOR(lev6intr)	/* 30: level 6 interrupt autovector */
+	VECTOR(intrhand)	/* 30: level 6 interrupt autovector */
 	VECTOR(lev7intr)	/* 31: level 7 interrupt autovector */
 	VECTOR(trap0)		/* 32: syscalls */
 #ifdef COMPAT_13

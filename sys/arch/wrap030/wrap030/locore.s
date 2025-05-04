@@ -96,6 +96,7 @@
  */
 	.text
 GLOBAL(kernel_text)
+	.extern reloadclock
 
 /*
  * Temporary stack for a variety of purposes.
@@ -623,27 +624,20 @@ ENTRY_NOPROFILE(intrhand)	/* levels 1 through 5 */
 	INTERRUPT_RESTOREREG
 	jra	_ASM_LABEL(rei)		| all done
 
-ENTRY_NOPROFILE(lev6intr)	/* Level 6: clock */
+/*
+ * adding wrap030 clock handler
+ */
+ENTRY_NOPROFILE(clockintr)
 	INTERRUPT_SAVEREG
-	/* XXX */
-	movl _C_LABEL(clockbase), %a0
-	movl %a0@, %d0
-	movl %d0, %a0@
-	btst #2, %d0
-	jeq 1f
-	addql	#1,_C_LABEL(intrcnt)+24
-	lea	%sp@(16), %a1		| a1 = &clockframe
-	movl	%a1, %sp@-
-	jbsr	_C_LABEL(hardclock)	| hardclock(&frame)
-	addql	#4, %sp
-	jra 2f
-1:
-	movl	%d0, %sp@-
-	jbsr	_C_LABEL(otherclock)
-	addql	#4, %sp
-2:
+	jbsr 	_C_LABEL(reloadclock)			|; start the timer again asap
+	addql	#1,_C_LABEL(intrcnt)+16			|; increment isr count
+	lea 	%sp@(16),%a1 					|; a1 = &clockframe
+	movl 	%a1,%sp@-						|;
+	jbsr 	_C_LABEL(hardclock)				|; update kernel clock
+	addql	#4,%sp 							|; clear stack frame
 	INTERRUPT_RESTOREREG
-	jra	_ASM_LABEL(rei)		| all done
+	jra 	_ASM_LABEL(rei)					|; done.
+
 
 ENTRY_NOPROFILE(lev7intr)	/* level 7: parity errors, reset key */
 	addql	#1,_C_LABEL(intrcnt)+28
