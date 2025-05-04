@@ -86,7 +86,6 @@ com_mainbus_attach(device_t parent, device_t self, void *aux)
 {
     struct com_mainbus_softc *msc = device_private(self);
     struct com_softc *sc = &msc->sc_com;
-    int serial;
     
     bus_space_tag_t iot;
     bus_space_handle_t ioh;
@@ -100,10 +99,10 @@ com_mainbus_attach(device_t parent, device_t self, void *aux)
     iot = (bus_space_tag_t)0x80300000;
     
     /* each UART space is 8 consecutive addresses long */
-    iobase = sc->dv_unit * 0x08;
+    iobase = device_unit(self) * 0x08;
 
     /* I only want the first unit to be the console ... I think? */
-    if(sc->dv_unit == 0)
+    if(device_unit(self) == 0)
     {
         /* comcnattach is defined in sys/dev/ic/com.c */
         comcnattach(iot, iobase, 9600, COMFREQ, COM_TYPE_NORMAL, (CREAD | CS8));
