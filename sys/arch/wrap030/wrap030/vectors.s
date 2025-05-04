@@ -34,7 +34,7 @@
 	.text
 GLOBAL(vectab)
 	/*VECTOR_UNUSED*/		/* 0: NOT USED (reset SSP) */
-	jmp		_ASM_LABEL(start)
+	bra		_ASM_LABEL(start)
 	VECTOR_UNUSED		/* 1: NOT USED (reset PC) */
 #if defined(M68040)
 	VECTOR(buserr40)	/* 2: bus error */

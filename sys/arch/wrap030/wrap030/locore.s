@@ -90,6 +90,8 @@
 #include <machine/asm.h>
 #include <machine/trap.h>
 
+#include <machine/wrap030_debug.h>
+
 /*
  * This is for kvm_mkdb, and should be the address of the beginning
  * of the kernel text segment (not necessarily the same as kernbase).
@@ -140,9 +142,18 @@ BSS(esym,4)
 
 	.text
 ASENTRY_NOPROFILE(start)
+
+#if defined(DEBUG_BOOTSTRAP)
+	debugPrintStrI "\r\nKernel Start\r\nDisabling interrupts & cache ... "
+#endif
+
 	movw	#PSL_HIGHIPL, %sr	| no interrupts
 	movl	#CACHE_OFF, %d0
 	movc	%d0, %cacr		| clear and disable on-chip cache(s)
+
+#if defined(DEBUG_BOOTSTRAP)
+	debugPrintStrI "OK\r\nSetting up temporary stack ... "
+#endif
 
 	/* XXX fixed load address */
 	/* wrap030 bootloader loads to address 0  */
@@ -151,12 +162,20 @@ ASENTRY_NOPROFILE(start)
 	ASRELOC(tmpstk, %a0)
 	movl	%a0, %sp		| give ourselves a temporary stack
 
+#if defined(DEBUG_BOOTSTRAP)
+	debugPrintStrI "OK\r\nClearing edata segment ... "
+#endif
+
 	RELOC(edata, %a0)
 	RELOC(end, %a1)
 2:
 	clrb	%a0@+
 	cmpl	%a0, %a1
 	bne	2b
+
+#if defined(DEBUG_BOOTSTRAP)
+	debugPrintStrI "OK\r\nSetting up data tables ... "
+#endif
 
 	RELOC(esym, %a0)
 #if 0
@@ -173,6 +192,10 @@ ASENTRY_NOPROFILE(start)
 	movl	%d7, %a0@
 	RELOC(bootdev, %a0)		|   and boot device
 	movl	%d6, %a0@
+#endif
+
+#if defined(DEBUG_BOOTSTRAP)
+	debugPrintStrI "OK\r\nChecking CPU type ... "
 #endif
 
 	/*
@@ -212,10 +235,18 @@ Lis68020:
 
 Lstart1:
 
+#if defined(DEBUG_BOOTSTRAP)
+	debugPrintStrI "OK\r\nInitializing source/destination registers ... "
+#endif
+
 /* initialize source/destination control registers for movs */
 	moveq	#FC_USERD,%d0		| user space
 	movc	%d0,%sfc		|   as source
 	movc	%d0,%dfc		|   and destination of transfers
+
+#if defined(DEBUG_BOOTSTRAP)
+	debugPrintStrI "OK\r\nSetting memory size to hard-coded 16MB ... "
+#endif
 
 /* initialize memory size (for pmap_bootstrap) */
 /* 
@@ -223,22 +254,11 @@ Lstart1:
  * eventually, need to come up with a way to determine how much memory is
  * actually installed, just in case there is something other than 16MB
  */
-/*
-	movl	0x5c00ac00, %d0
-	andb	#0x60, %d0
-	jne	Lnot8M
-	movl	#0x20800000, %d1	| memory end, 8M
-	jra	Lmemok
-Lnot8M:
-	cmpb	#0x20, %d0
-	jne	Lunkmem
-	movl	#0x22000000, %d1	| memory end, 32M
-	jra	Lmemok
-Lunkmem:
-	/* ??? */
-	movl	#0x20400000, %d1	| memory end, assume at least 4M
-*/
 	movl 	#0x01000000,%d1 	|; wrap030 memory end, 16MB
+
+#if defined(DEBUG_BOOTSTRAP)
+	debugPrintStrI "OK\r\nCalculating kernel memory page ... "
+#endif
 	
 Lmemok:
 	moveq	#PGSHIFT,%d2
@@ -256,7 +276,12 @@ Lmemok:
 	jne	Lstart2
 #endif
 	movl	#_C_LABEL(end),%d5	| end of static kernel text/data
+
 Lstart2:
+#if defined(DEBUG_BOOTSTRAP)
+	debugPrintStrI "OK\r\nBootstrapping pmap ... "
+#endif
+	
 	addl	#PAGE_SIZE-1,%d5
 	andl	#PG_FRAME,%d5		| round to a page
 	movl	%d5,%a4
@@ -268,6 +293,9 @@ Lstart2:
 	jbsr	%a0@			| pmap_bootstrap(firstpa, nextpa)
 	addql	#8,%sp
 
+#if defined(DEBUG_BOOTSTRAP)
+	debugPrintStrI "OK\r\nPreparing to enable MMU ... "
+#endif
 /*
  * Prepare to enable MMU.
  */
@@ -320,6 +348,9 @@ Lmotommu2:
  * Should be running mapped from this point on
  */
 Lenab1:
+#if defined(DEBUG_BOOTSTRAP)
+	debugPrintStrI "OK. MMU Enabled.\r\nSetting VBR & clearing Transparent Translation ... "
+#endif
 	.word	0xf4d8			| cinva bc
 	.word	0xf518			| pflusha
 	nop
@@ -335,6 +366,10 @@ Lenab1:
 	.long	0x4e7b0006		| movc d0,dtt0
 	.long	0x4e7b0007		| movc d0,dtt1
 
+#if defined(DEBUG_BOOTSTRAP)
+	debugPrintStrI "OK.\r\nFinalizing pmap setup ... "
+#endif
+
 	lea	_ASM_LABEL(tmpstk),%sp	| temporary stack
 /* call final pmap setup */
 	jbsr	_C_LABEL(pmap_bootstrap_finalize)
@@ -344,14 +379,23 @@ Lenab1:
 	movl	#USRSTACK-4,%a2
 	movl	%a2,%usp		| init user SP
 
+#if defined(DEBUG_BOOTSTRAP)
+	debugPrintStrI "OK.\r\nChecking FPU ... "
+#endif
+
 	tstl	_C_LABEL(fputype)	| Have an FPU?
 	jeq	Lenab2			| No, skip.
+#if defined(DEBUG_BOOTSTRAP)
+	debugPrintStrI "FPU Found ... \r\n"
+#endif
 	clrl	%a1@(PCB_FPCTX)		| ensure null FP context
 	movl	%a1,%sp@-
 	jbsr	_C_LABEL(m68881_restore)   | restore it (does not kill a1)
 	addql	#4,%sp
 Lenab2:
-
+#if defined(DEBUG_BOOTSTRAP)
+	debugPrintStrI "OK.\r\n"
+#endif
 /* flush TLB and turn on caches */
 	jbsr	_C_LABEL(_TBIA)		| invalidate TLB
 	cmpl	#MMU_68040,_C_LABEL(mmutype)	| 68040?
@@ -361,6 +405,9 @@ Lenab2:
 Lnocache0:
 
 /* Final setup for call to main(). */
+#if defined(DEBUG_BOOTSTRAP)
+	debugPrintStrI "Starting final setup for call to main() ... "
+#endif
 	jbsr	_C_LABEL(fic_init)
 
 /*
@@ -376,7 +423,15 @@ Lnocache0:
 	lea	_C_LABEL(lwp0),%a0	| save pointer to frame
 	movl	%sp,%a0@(L_MD_REGS)	|   in lwp0.l_md.md_regs
 
+#if defined(DEBUG_BOOTSTRAP)
+	debugPrintStrI "OK.\r\nLocore setup complete. Calling main ... \r\n"
+#endif
+
 	jra	_C_LABEL(main)		| main()
+
+#if defined(DEBUG_BOOTSTRAP)
+	debugPrintStrI "\r\n\r\nKernel main() returned. Panic.\r\n"
+#endif
 
 	pea	Lmainreturned		| Yow!  Main returned!
 	jbsr	_C_LABEL(panic)

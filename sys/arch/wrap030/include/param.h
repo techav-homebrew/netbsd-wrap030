@@ -60,7 +60,10 @@
 #define	PGSHIFT		12		/* LOG2(NBPG) */
 #define	NPTEPG		(NBPG/(sizeof (pt_entry_t)))
 
-#define	KERNBASE	0x00002000	/* start of kernel virtual */
+/*#define	KERNBASE	0x00002000*/	/* start of kernel virtual */
+/* I don't know what this should be, should it be after the kernel data/bss? 
+ * or is it supposed to be the point where kernel gets loaded into RAM? */
+#define     KERNBASE    0x00000000
 
 #define	UPAGES		2		/* pages of u-area */
 

@@ -60,7 +60,7 @@ locore.o: ${CESFIC}/wrap030/locore.s assym.h
 ## (5) link settings
 ##
 LINKFORMAT=	-n
-TEXTADDR?=	2000
+TEXTADDR?=	0000
 
 ##
 ## (6) port specific target dependencies
