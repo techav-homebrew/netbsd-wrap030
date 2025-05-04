@@ -23,6 +23,10 @@ file	arch/wrap030/wrap030/sic6351.c
 file	arch/wrap030/wrap030/clk_dp8570a.c
 file	arch/wrap030/wrap030/eeprom.c
 
+# most of this file was pulled from arch/atari
+file    arch/wrap030/wrap030/bus.c
+
+
 #
 # devices
 #
