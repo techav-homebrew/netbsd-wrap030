@@ -101,6 +101,7 @@ __KERNEL_RCSID(0, "$NetBSD: machdep.c,v 1.72 2021/10/09 20:00:41 tsutsui Exp $")
 #include <machine/z8530var.h>
 #include <wrap030/dev/zsvar.h>
 */
+#include <machine/wrap030_debugc.h>
 
 #include <dev/ic/comreg.h>
 #include <dev/ic/comvar.h>
@@ -120,12 +121,12 @@ struct vm_map *phys_map = NULL;
 /*
  * Declare these as initialized data so we can patch them.
  */
-/*int	maxmem;*/			/* max memory per process */
+int	maxmem;			/* max memory per process */
 extern psize_t physmem;			/* max supported memory, changes to actual */
 
 extern	u_int lowram;
 
-void fic_init(void);
+void wrap030_init(void);
 
 /* prototypes for local functions */
 void    identifycpu(void);
@@ -140,11 +141,15 @@ int	delay_divisor;		/* delay constant */
 
 extern void sicinit(void*);
 
-void fic_init(void)
+void wrap030_init(void)
 {
 	int i;
 
 	extern paddr_t avail_start, avail_end;
+
+	#ifdef DEBUG_BOOTSTRAP_C
+	debugPrintStr("wrap030_init()\r\n");
+	#endif
 
 	boothowto = RB_SINGLE; /* XXX for now */
 	boothowto |= RB_KDB; /* XXX for now */
@@ -155,9 +160,19 @@ void fic_init(void)
 	 * Tell the VM system about available physical memory.  The
 	 * fic uses one segment.
 	 */
+	#ifdef DEBUG_BOOTSTRAP_C
+	debugPrintStr("wrap030_init() uvm_page_physload\r\n\tavail_start:\t");
+	debugPrintInt((int)avail_start);
+	debugPrintStr("\r\n\tavail_end:\t");
+	debugPrintInt((int)avail_end);
+	debugPrintStr("\r\n");
+	#endif
 	uvm_page_physload(atop(avail_start), atop(avail_end),
 	    atop(avail_start), atop(avail_end), VM_FREELIST_DEFAULT);
 
+	#ifdef DEBUG_BOOTSTRAP_C
+	debugPrintStr("wrap030_init() uvm_page_physload done\r\n");
+	#endif
 	/*
 	 * map and init interrupt controller
 	 */
@@ -172,12 +187,37 @@ void fic_init(void)
 	 * Initialize error message buffer (at end of core).
 	 * avail_end was pre-decremented in pmap_bootstrap to compensate.
 	 */
+	#ifdef DEBUG_BOOTSTRAP_C
+	debugPrintStr("wrap030_init() map message buffer pages\r\n");
+	#endif
+	/* this bit pulled from hp300/luna68k/news68k */
 	for (i = 0; i < btoc(MSGBUFSIZE); i++)
+		pmap_kenter_pa((vaddr_t)msgbufaddr + i * PAGE_SIZE,
+		    avail_end + i * PAGE_SIZE, VM_PROT_READ|VM_PROT_WRITE, 0); 
+	/* for (i = 0; i < btoc(MSGBUFSIZE); i++)
 		pmap_enter(pmap_kernel(), (vaddr_t)msgbufaddr + i * PAGE_SIZE,
 		    avail_end + i * PAGE_SIZE, VM_PROT_READ|VM_PROT_WRITE,
-		    VM_PROT_READ|VM_PROT_WRITE|PMAP_WIRED);
+		    VM_PROT_READ|VM_PROT_WRITE|PMAP_WIRED); */
+	
+	#ifdef DEBUG_BOOTSTRAP_C
+	debugPrintStr("wrap030_init() message buffer pages mapped\r\n\tavail_start:\t");
+	debugPrintInt((int)avail_start);
+	debugPrintStr("\r\n\tavail_end:\t");
+	debugPrintInt((int)avail_end);
+	debugPrintStr("\r\n");
+	debugPrintStr("wrap030_init() pmap_update\r\n");
+	#endif
 	pmap_update(pmap_kernel());
-	initmsgbuf(msgbufaddr, m68k_round_page(MSGBUFSIZE));
+
+	#ifdef DEBUG_BOOTSTRAP_C
+	debugPrintStr("wrap030_init() initmsgbuf\r\n");
+	#endif
+	/* initmsgbuf(msgbufaddr, m68k_round_page(MSGBUFSIZE)); */
+	initmsgbuf(msgbufaddr, MSGBUFSIZE);
+
+	#ifdef DEBUG_BOOTSTRAP_C
+	debugPrintStr("wrap030_init() exiting ... ");
+	#endif
 }
 
 /*

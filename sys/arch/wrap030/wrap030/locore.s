@@ -144,7 +144,7 @@ BSS(esym,4)
 ASENTRY_NOPROFILE(start)
 
 #if defined(DEBUG_BOOTSTRAP)
-	debugPrintStrI "\r\nKernel Start\r\nDisabling interrupts & cache ... "
+	debugPrintStrI "\r\nKernel Locore Start\r\nDisabling interrupts & cache ... "
 #endif
 
 	movw	#PSL_HIGHIPL, %sr	| no interrupts
@@ -266,6 +266,8 @@ Lmemok:
 	movl	%a5,%d0			| lowram value from ROM via boot
 	lsrl	%d2,%d0			| convert to page number
 	subl	%d0,%d1			| compute amount of RAM present
+	RELOC(maxmem,%a0)
+	movl 	%d1,%a0@		| save maxmem
 	RELOC(physmem, %a0)
 	movl	%d1,%a0@		| and physmem
 /* configure kernel and lwp0 VA space so we can get going */
@@ -290,11 +292,11 @@ Lstart2:
 	pea	%a5@			| firstpa
 	pea	%a4@			| nextpa
 	RELOC(pmap_bootstrap,%a0)
-	jbsr	%a0@			| pmap_bootstrap(firstpa, nextpa)
+	jbsr	%a0@			| pmap_bootstrap(nextpa, firstpa)
 	addql	#8,%sp
 
 #if defined(DEBUG_BOOTSTRAP)
-	debugPrintStrI "OK\r\nPreparing to enable MMU ... "
+	debugPrintStrI "OK\r\nPreparing to enable MMU ... \r\n"
 #endif
 /*
  * Prepare to enable MMU.
@@ -306,21 +308,33 @@ Lstart2:
 	RELOC(mmutype, %a0)
 	cmpl	#MMU_68040,%a0@		| 68040?
 	jne	Lmotommu1		| no, skip
+#if defined(DEBUG_BOOTSTRAP)
+	debugPrintStrI "\tMMU type 68040\r\n"
+#endif
 	.long	0x4e7b1807		| movc d1,srp
 	jra	Lstploaddone
 Lmotommu1:
+#if defined(DEBUG_BOOTSTRAP)
+	debugPrintStrI "\tMMU type '851/'030"
+#endif
 	RELOC(protorp, %a0)
 	movl	#0x80000202,%a0@	| nolimit + share global + 4 byte PTEs
 	movl	%d1,%a0@(4)		| + segtable address
 	pmove	%a0@,%srp		| load the supervisor root pointer
 	movl	#0x80000002,%a0@	| reinit upper half for CRP loads
+#if defined(DEBUG_BOOTSTRAP)
+	debugPrintStrI "...\r\n"
+#endif
 Lstploaddone:
 
 	RELOC(mmutype, %a0)
 	cmpl	#MMU_68040,%a0@		| 68040?
 	jne	Lmotommu2		| no, skip
-
-	movel #0x2000c000, %d0		| double map RAM
+#if defined(DEBUG_BOOTSTRAP)
+	debugPrintStrI "\t setting up 68040 MMU\r\n"
+#endif
+|;	movel #0x2000c000, %d0		| double map RAM
+	movel 	#0x0000c000,%d0 	|; I think this is a cesfic RAM address
 	.long	0x4e7b0004		| movc d0,itt0
 	.long	0x4e7b0006		| movc d0,dtt0
 	moveq	#0, %d0			| ensure TT regs are disabled
@@ -338,42 +352,57 @@ Lstploaddone:
 	jmp	Lenab1:l		| avoid pc-relative
 Lmotommu2:
 	/* XXX do TT here */
+#if defined(DEBUG_BOOTSTRAP)
+	debugPrintStrI "\tFlushing ATCs\r\n"
+#endif
 	pflusha
+#if defined(DEBUG_BOOTSTRAP)
+	debugPrintStrI "\tSetting Transparent Translation Registers\r\n"
+#endif
+	|; need to set the upper 2GB page for transparent translation
+	RELOC(mmuttr,%a0)
+	movl 	#0x807f8507,%a0@ 	|; TT all addresses with bit 31 set
+	|;.long	0xf0100800		|; pmove %a0@,%tt0
+	pmove 	%a0@,%tt0
+	addql 	#4,%a0 			|; increment pointer
+	movl 	#0,%a0@			|; dont use tt1
+	|;.long	0xf0100c00		|; pmove %a0@,%tt`
+	pmove 	%a0@,%tt1
+	
+#if defined(DEBUG_BOOTSTRAP)
+	debugPrintStrI "\tEnabling MMU ...\r\n"
+#endif
 	RELOC(prototc, %a2)
 	movl	#0x82c0aa00,%a2@	| value to load TC with
 	pmove	%a2@,%tc		| load it
-	jmp	Lenab1
+#if defined(DEBUG_BOOTSTRAP)
+	debugPrintStrI "\tWrapping up ...\r\n"
+#endif
+	jmp	Lenab1:l
 
 /*
  * Should be running mapped from this point on
  */
 Lenab1:
 #if defined(DEBUG_BOOTSTRAP)
-	debugPrintStrI "OK. MMU Enabled.\r\nSetting VBR & clearing Transparent Translation ... "
+	debugPrintStrI "MMU Enabled.\r\n" /* Setting VBR ... " */
 #endif
-	.word	0xf4d8			| cinva bc
-	.word	0xf518			| pflusha
-	nop
-	nop
-	nop
-	nop
-	nop
+	/*
 	movl	#_C_LABEL(vectab),%d0	| set Vector Base Register
 	movc	%d0,%vbr
-	moveq	#0,%d0			| ensure TT regs are disabled
-	.long	0x4e7b0004		| movc d0,itt0
-	.long	0x4e7b0005		| movc d0,itt1
-	.long	0x4e7b0006		| movc d0,dtt0
-	.long	0x4e7b0007		| movc d0,dtt1
+	*/
 
 #if defined(DEBUG_BOOTSTRAP)
-	debugPrintStrI "OK.\r\nFinalizing pmap setup ... "
+	debugPrintStrI "Finalizing pmap setup ... "
 #endif
 
 	lea	_ASM_LABEL(tmpstk),%sp	| temporary stack
 /* call final pmap setup */
 	jbsr	_C_LABEL(pmap_bootstrap_finalize)
 /* set kernel stack, user SP */
+#if defined(DEBUG_BOOTSTRAP)
+	debugPrintStrI "OK.\r\nInitializing user stack ... "
+#endif
 	movl	_C_LABEL(lwp0uarea),%a1	| get lwp0 uarea
 	lea	%a1@(USPACE-4),%sp	| set kernel stack to end of area
 	movl	#USRSTACK-4,%a2
@@ -386,7 +415,7 @@ Lenab1:
 	tstl	_C_LABEL(fputype)	| Have an FPU?
 	jeq	Lenab2			| No, skip.
 #if defined(DEBUG_BOOTSTRAP)
-	debugPrintStrI "FPU Found ... \r\n"
+	debugPrintStrI "FPU Found ... "
 #endif
 	clrl	%a1@(PCB_FPCTX)		| ensure null FP context
 	movl	%a1,%sp@-
@@ -394,9 +423,12 @@ Lenab1:
 	addql	#4,%sp
 Lenab2:
 #if defined(DEBUG_BOOTSTRAP)
-	debugPrintStrI "OK.\r\n"
+	debugPrintStrI "OK.\r\nInvalidating TLB ... "
 #endif
 /* flush TLB and turn on caches */
+#if defined(DEBUG_BOOTSTRAP)
+	debugPrintStrI "OK.\r\nWrapping up ... "
+#endif
 	jbsr	_C_LABEL(_TBIA)		| invalidate TLB
 	cmpl	#MMU_68040,_C_LABEL(mmutype)	| 68040?
 	jeq	Lnocache0		| yes, cache already on
@@ -406,15 +438,18 @@ Lnocache0:
 
 /* Final setup for call to main(). */
 #if defined(DEBUG_BOOTSTRAP)
-	debugPrintStrI "Starting final setup for call to main() ... "
+	debugPrintStrI "OK\r\nInitializing hardware ... "
 #endif
-	jbsr	_C_LABEL(fic_init)
+	jbsr	_C_LABEL(wrap030_init)
 
 /*
  * Create a fake exception frame so that cpu_lwp_fork() can copy it.
  * main() nevers returns; we exit to user mode from a forked process
  * later on.
  */
+#if defined(DEBUG_BOOTSTRAP)
+	debugPrintStrI "OK\r\nInitializing exception frame ... "
+#endif
 	clrw	%sp@-			| vector offset/frame type
 	clrl	%sp@-			| PC - filled in by "execve"
 	movw	#PSL_USER,%sp@-		| in user mode
@@ -422,6 +457,12 @@ Lnocache0:
 	lea	%sp@(-64),%sp		| construct space for D0-D7/A0-A7
 	lea	_C_LABEL(lwp0),%a0	| save pointer to frame
 	movl	%sp,%a0@(L_MD_REGS)	|   in lwp0.l_md.md_regs
+
+#if defined(DEBUG_BOOTSTRAP)
+	debugPrintStrI "OK\r\nInitializing Vector Base Register ... "
+#endif
+	movl	#_C_LABEL(vectab),%d0	| set Vector Base Register
+	movc	%d0,%vbr
 
 #if defined(DEBUG_BOOTSTRAP)
 	debugPrintStrI "OK.\r\nLocore setup complete. Calling main ... \r\n"
@@ -957,6 +998,8 @@ GLOBAL(protorp)
 	.long	0,0		| prototype root pointer
 GLOBAL(prototc)
 	.long	0		| prototype translation control
+GLOBAL(mmuttr)
+	.long 	0,0		| MMU Transpare Translation Registers
 
 #ifdef DEBUG
 	.globl	fulltflush, fullcflush

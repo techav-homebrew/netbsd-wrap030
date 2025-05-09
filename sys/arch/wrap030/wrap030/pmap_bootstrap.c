@@ -45,9 +45,68 @@ __KERNEL_RCSID(0, "$NetBSD: pmap_bootstrap.c,v 1.35 2021/07/24 21:31:32 andvar E
 #include <machine/pte.h>
 #include <machine/vmparam.h>
 
+
+
+#define DEBUG_PMBS_LOG
+
+#ifdef DEBUG_PMBS_LOG
+static inline void debugPmbsPrintChar(char);
+static inline void debugPmbsPrintStr(const char *);
+static inline void debugPmbsPrintByte(unsigned char);
+static inline void debugPmbsPrintShort(unsigned short);
+static inline void debugPmbsPrintInt(unsigned int);
+
+static inline void debugPmbsPrintChar(char c)
+{
+	volatile char * comPtr = (char *)0x80080000;
+	volatile char * datPtr = (char *)0x80080004;
+	while(!(*comPtr & 2));
+	*datPtr = c;
+}
+
+static inline void debugPmbsPrintStr(const char * str)
+{
+	char c = *str++;
+	while(c)
+	{
+		debugPmbsPrintChar(c);
+		c = *str++;
+	}
+}
+
+static inline void debugPmbsPrintByte(unsigned char n)
+{
+	unsigned char c;
+	c = n >> 4;
+	if(c < 10) c += 0x30;
+	else c += 0x37;
+	debugPmbsPrintChar(c);
+	c = n & 0x0f;
+	if(c < 10) c += 0x30;
+	else c += 0x37;
+	debugPmbsPrintChar(c);
+}
+
+static inline void debugPmbsPrintShort(unsigned short n)
+{
+	debugPmbsPrintByte(n >> 8);
+	debugPmbsPrintByte(n & 0x0ff);
+}
+
+static inline void debugPmbsPrintInt(unsigned int n)
+{
+	debugPmbsPrintShort(n >> 16);
+	debugPmbsPrintShort(n & 0x0ffff);
+}
+
+#endif
+
+
 #define RELOC(v, t)	*((t*)((uintptr_t)&(v) + firstpa - KERNBASE))
 
 extern char *etext;
+extern int maxmem;
+extern psize_t physmem;
 extern paddr_t avail_start, avail_end;
 
 /*
@@ -85,6 +144,13 @@ pmap_bootstrap(paddr_t nextpa, paddr_t firstpa)
 	pt_entry_t protopte, *pte, *epte;
 	u_int stfree = 0;	/* XXX: gcc -Wuninitialized */
 
+	#ifdef DEBUG_PMBS_LOG
+	debugPmbsPrintStr("\r\npmap_boostrap(");
+	debugPmbsPrintInt((int)nextpa);
+	debugPmbsPrintChar(',');
+	debugPmbsPrintInt((int)firstpa);
+	debugPmbsPrintStr(")\r\n");
+	#endif
 	/*
 	 * Calculate important physical addresses:
 	 *
@@ -122,6 +188,22 @@ pmap_bootstrap(paddr_t nextpa, paddr_t firstpa)
 	kptpa = nextpa;
 	nptpages = RELOC(Sysptsize, int) + howmany(RELOC(physmem, int), NPTEPG);
 	nextpa += nptpages * PAGE_SIZE;
+
+	#ifdef DEBUG_PMBS_LOG
+	debugPmbsPrintStr("\tlqp0upa:\t");
+	debugPmbsPrintInt((int)lwp0upa);
+	debugPmbsPrintStr("\r\n\tkstpa:\t");
+	debugPmbsPrintInt((int)kstpa);
+	debugPmbsPrintStr("\r\n\tkptmpa:\t");
+	debugPmbsPrintInt((int)kptmpa);
+	debugPmbsPrintStr("\r\n\tlkptpa:\t");
+	debugPmbsPrintInt((int)lkptpa);
+	debugPmbsPrintStr("\r\n\tkptpa:\t");
+	debugPmbsPrintInt((int)kptpa);
+	debugPmbsPrintStr("\r\n\tnextpa:\t");
+	debugPmbsPrintInt((int)nextpa);
+	debugPmbsPrintStr("\r\n");
+	#endif
 
 	/*
 	 * Initialize segment table and kernel page table map.
@@ -272,17 +354,46 @@ pmap_bootstrap(paddr_t nextpa, paddr_t firstpa)
 		 * Map the page table pages in both the HW segment table
 		 * and the software Sysptmap.
 		 */
+		#ifdef DEBUG_PMBS_LOG
+		debugPmbsPrintStr("pmap_boostrap() '851/'030 map page tables\r\n");
+		#endif
 		ste = (st_entry_t *)kstpa;
 		pte = (pt_entry_t *)kptmpa;
 		epte = &pte[nptpages];
 		protoste = kptpa | SG_RW | SG_V;
 		protopte = kptpa | PG_RW | PG_CI | PG_V;
+		#ifdef DEBUG_PMBS_LOG
+		debugPmbsPrintStr("\r\n\tste:\t\t");
+		debugPmbsPrintInt((int)ste);
+		debugPmbsPrintStr("\r\n\tpte:\t\t");
+		debugPmbsPrintInt((int)pte);
+		debugPmbsPrintStr("\r\n\tepte:\t\t");
+		debugPmbsPrintInt((int)epte);
+		debugPmbsPrintStr("\r\n\tprotoste:\t");
+		debugPmbsPrintInt((int)protoste);
+		debugPmbsPrintStr("\r\n\tprotopte\t");
+		debugPmbsPrintInt((int)protopte);
+		debugPmbsPrintStr("\r\n");
+		#endif
 		while (pte < epte) {
 			*ste++ = protoste;
 			*pte++ = protopte;
 			protoste += PAGE_SIZE;
 			protopte += PAGE_SIZE;
 		}
+		#ifdef DEBUG_PMBS_LOG
+		debugPmbsPrintStr("pmap_boostrap() page tables mapped.\r\n\tste:\t\t");
+		debugPmbsPrintInt((int)ste);
+		debugPmbsPrintStr("\r\n\tpte:\t\t");
+		debugPmbsPrintInt((int)pte);
+		debugPmbsPrintStr("\r\n\tepte:\t\t");
+		debugPmbsPrintInt((int)epte);
+		debugPmbsPrintStr("\r\n\tprotoste:\t");
+		debugPmbsPrintInt((int)protoste);
+		debugPmbsPrintStr("\r\n\tprotopte\t");
+		debugPmbsPrintInt((int)protopte);
+		debugPmbsPrintStr("\r\n");
+		#endif
 		/*
 		 * Invalidate all remaining entries in both.
 		 */
@@ -304,10 +415,26 @@ pmap_bootstrap(paddr_t nextpa, paddr_t firstpa)
 		pte = &pte[SYSMAP_VA >> SEGSHIFT];
 		*ste = kptmpa | SG_RW | SG_V;
 		*pte = kptmpa | PG_RW | PG_CI | PG_V;
-		ste++;		/* XXX should use [MAXADDR >> SEGSHIFT] */
-		pte++;		/* XXX should use [MAXADDR >> SEGSHIFT] */
+		/* this bit isn't in any of the other m68k archs. removing...
+		ste++;		/ * XXX should use [MAXADDR >> SEGSHIFT] * /
+		pte++;		/ * XXX should use [MAXADDR >> SEGSHIFT] * /
 		*ste = lkptpa | SG_RW | SG_V;
 		*pte = lkptpa | PG_RW | PG_CI | PG_V;
+		*/
+		
+		#ifdef DEBUG_PMBS_LOG
+		debugPmbsPrintStr("pmap_boostrap() done with '851/'030 init.\r\n\tste:\t\t");
+		debugPmbsPrintInt((int)ste);
+		debugPmbsPrintStr("\r\n\tpte:\t\t");
+		debugPmbsPrintInt((int)pte);
+		debugPmbsPrintStr("\r\n\tepte:\t\t");
+		debugPmbsPrintInt((int)epte);
+		debugPmbsPrintStr("\r\n\tprotoste:\t");
+		debugPmbsPrintInt((int)protoste);
+		debugPmbsPrintStr("\r\n\tprotopte\t");
+		debugPmbsPrintInt((int)protopte);
+		debugPmbsPrintStr("\r\n");
+		#endif
 	}
 
 	/*
@@ -318,10 +445,12 @@ pmap_bootstrap(paddr_t nextpa, paddr_t firstpa)
 	 * XXX: This looks copied from hp300 where PA != VA, but
 	 * XXX: it's suspicious if this is also required on this port.
 	 */
+	/* removing it for wrap030 because if you don't know I sure don't ...
 	pte = (pt_entry_t *)lkptpa;
 	epte = &pte[NPTEPG];
 	while (pte < epte)
 		*pte++ = PG_NV;
+	*/
 	/*
 	 * Initialize kernel page table.
 	 * Start by invalidating the `nptpages' that we have allocated.
@@ -352,8 +481,10 @@ pmap_bootstrap(paddr_t nextpa, paddr_t firstpa)
 	/*
 	 * Enable copy-back caching of data pages
 	 */
+#ifdef M68040
 	if (RELOC(mmutype, int) == MMU_68040)
 		protopte |= PG_CCB;
+#endif
 	while (pte < epte) {
 		*pte++ = protopte;
 		protopte += PAGE_SIZE;
@@ -366,10 +497,12 @@ pmap_bootstrap(paddr_t nextpa, paddr_t firstpa)
 	epte = (pt_entry_t *)kptpa;
 	epte = &epte[m68k_btop(KERNBASE + nextpa - firstpa)];
 	protopte = (protopte & ~PG_PROT) | PG_RW;
+#ifdef M68040
 	if (RELOC(mmutype, int) == MMU_68040) {
 		protopte &= ~PG_CCB;
 		protopte |= PG_CIN;
 	}
+#endif
 	while (pte < epte) {
 		*pte++ = protopte;
 		protopte += PAGE_SIZE;
@@ -420,13 +553,29 @@ pmap_bootstrap(paddr_t nextpa, paddr_t firstpa)
 	 * To work around this, we move avail_end back one more
 	 * page so the msgbuf can be preserved.
 	 */
+	/*
 	RELOC(avail_start, paddr_t) = nextpa;
 	RELOC(avail_end, paddr_t) = firstpa
 	  + m68k_ptob(RELOC(physmem, int))
 	  - m68k_round_page(MSGBUFSIZE)
-	  - PAGE_SIZE; /* if that start of last page??? */
+	  - PAGE_SIZE; 
 	RELOC(virtual_avail, vaddr_t) =
 		KERNBASE + (nextpa - firstpa);
+	RELOC(virtual_end, vaddr_t) = VM_MAX_KERNEL_ADDRESS;
+	*/
+	/*RELOC(avail_start, paddr_t) = nextpa;
+	RELOC(avail_end, paddr_t) = firstpa 
+		+ m68k_ptob(RELOC(physmem,int))
+		- MSGBUFSIZE
+		- PAGE_SIZE;
+	RELOC(mem_size, vsize_t) = m68k_ptob(RELOC(physmem,int));
+	RELOC(virtual_end, vaddr_t) = VM_MAX_KERNEL_ADDRESS;*/
+	/* I'm going to make this last bit match the other m68k archs */
+	RELOC(avail_start, paddr_t) = nextpa;
+	RELOC(avail_end, paddr_t) = m68k_ptob(RELOC(maxmem, int)) -
+	    m68k_round_page(MSGBUFSIZE);
+	RELOC(mem_size, vsize_t) = m68k_ptob(RELOC(physmem, int));
+
 	RELOC(virtual_end, vaddr_t) = VM_MAX_KERNEL_ADDRESS;
 
 	/*
@@ -445,4 +594,35 @@ pmap_bootstrap(paddr_t nextpa, paddr_t firstpa)
 		va += m68k_round_page(MSGBUFSIZE);
 		RELOC(virtual_avail, vaddr_t) = va;
 	}
+	#ifdef DEBUG_PMBS_LOG
+	debugPmbsPrintStr("pmap_boostrap() done.\r\n\tste:\t\t");
+	debugPmbsPrintInt((int)ste);
+	debugPmbsPrintStr("\r\n\tpte:\t\t");
+	debugPmbsPrintInt((int)pte);
+	debugPmbsPrintStr("\r\n\tepte:\t\t");
+	debugPmbsPrintInt((int)epte);
+	debugPmbsPrintStr("\r\n\tprotoste:\t");
+	debugPmbsPrintInt((int)protoste);
+	debugPmbsPrintStr("\r\n\tprotopte\t");
+	debugPmbsPrintInt((int)protopte);
+	debugPmbsPrintStr("\r\n\tavail_start\t");
+	debugPmbsPrintInt((int)avail_start);
+	debugPmbsPrintStr("\r\n\tavail_end\t");
+	debugPmbsPrintInt((int)avail_end);
+	debugPmbsPrintStr("\r\n\tmem_size\t");
+	debugPmbsPrintInt((int)mem_size);
+	debugPmbsPrintStr("\r\n\tCADDR1\t");
+	debugPmbsPrintInt((int)CADDR1);
+	debugPmbsPrintStr("\r\n\tCADDR2\t");
+	debugPmbsPrintInt((int)CADDR2);
+	debugPmbsPrintStr("\r\n\tvmmap\t");
+	debugPmbsPrintInt((int)vmmap);
+	debugPmbsPrintStr("\r\n\tmsgbufaddr\t");
+	debugPmbsPrintInt((int)msgbufaddr);
+	debugPmbsPrintStr("\r\n\tvirtual_avail\t");
+	debugPmbsPrintInt((int)virtual_avail);
+	debugPmbsPrintStr("\r\n\tvirtual_end\t");
+	debugPmbsPrintInt((int)virtual_end);
+	debugPmbsPrintStr("\r\n\t\t\t");
+	#endif
 }
