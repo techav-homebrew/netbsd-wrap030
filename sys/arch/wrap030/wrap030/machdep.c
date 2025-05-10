@@ -190,14 +190,14 @@ void wrap030_init(void)
 	#ifdef DEBUG_BOOTSTRAP_C
 	debugPrintStr("wrap030_init() map message buffer pages\r\n");
 	#endif
-	/* this bit pulled from hp300/luna68k/news68k */
+	/* this bit pulled from hp300/luna68k/news68k 
 	for (i = 0; i < btoc(MSGBUFSIZE); i++)
 		pmap_kenter_pa((vaddr_t)msgbufaddr + i * PAGE_SIZE,
-		    avail_end + i * PAGE_SIZE, VM_PROT_READ|VM_PROT_WRITE, 0); 
-	/* for (i = 0; i < btoc(MSGBUFSIZE); i++)
+		    avail_end + i * PAGE_SIZE, VM_PROT_READ|VM_PROT_WRITE, 0); */ 
+	for (i = 0; i < btoc(MSGBUFSIZE); i++)
 		pmap_enter(pmap_kernel(), (vaddr_t)msgbufaddr + i * PAGE_SIZE,
 		    avail_end + i * PAGE_SIZE, VM_PROT_READ|VM_PROT_WRITE,
-		    VM_PROT_READ|VM_PROT_WRITE|PMAP_WIRED); */
+		    VM_PROT_READ|VM_PROT_WRITE|PMAP_WIRED); 
 	
 	#ifdef DEBUG_BOOTSTRAP_C
 	debugPrintStr("wrap030_init() message buffer pages mapped\r\n\tavail_start:\t");
@@ -205,11 +205,65 @@ void wrap030_init(void)
 	debugPrintStr("\r\n\tavail_end:\t");
 	debugPrintInt((int)avail_end);
 	debugPrintStr("\r\n");
-	debugPrintStr("wrap030_init() pmap_update\r\n");
+	debugPrintStr("wrap030_init() pmap_update ... ");
 	#endif
 	pmap_update(pmap_kernel());
 
 	#ifdef DEBUG_BOOTSTRAP_C
+	/* I'm going to print the whole MMU table here ... */
+	debugPrintStr("OK\r\n*** MMU TABLE ***");
+	/* int* rpt = RELOC(Sysseg_pa,int); */
+	int* rpt = (int*)Sysseg_pa;
+	int* TIB;
+	for(int ia = 0; ia < 0x0200; ia++)
+	{
+		int tae = *(rpt + (ia << 2));
+		debugPrintStr("\r\n  ");
+		debugPrintShort(ia);
+		debugPrintStr(": ");
+		debugPrintInt(tae);
+		int bShift = 2;
+		switch(tae & 0x03)
+		{
+			case 0:
+				debugPrintStr(": invalid");
+				break;
+			case 1:
+				debugPrintStr(": page descriptor");
+			case 3:
+				bShift = 3;
+			case 2:
+				/* traverse table B */
+				TIB = (int*)(tae & 0xfffffffc);
+				for(int ib = 0; ib < 1024; ib++)
+				{
+					int tbe = *(TIB + (ib << bShift));
+					if((ib & 0x03) == 0)
+					{
+						debugPrintStr("\r\n    ");
+						debugPrintShort(ib);
+						debugPrintStr(": ");
+					}
+					debugPrintInt(tbe);
+					switch(tbe & 0x03)
+					{
+						case 0:
+							debugPrintStr(": bad,   ");
+							break;
+						case 1:
+							debugPrintStr(": page,  ");
+							break;
+						case 2:
+							debugPrintStr(": short, ");
+							break;
+						case 3:
+							debugPrintStr(": long,  ");
+							break;
+					}
+				}
+		}
+	}
+	debugPrintStr("\r\n*** MMU TABLE END *** ... ");
 	debugPrintStr("wrap030_init() initmsgbuf\r\n");
 	#endif
 	/* initmsgbuf(msgbufaddr, m68k_round_page(MSGBUFSIZE)); */

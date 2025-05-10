@@ -106,8 +106,15 @@
 
 /* user/kernel map constants */
 #define VM_MIN_ADDRESS		((vaddr_t)0)
+/*
 #define VM_MAXUSER_ADDRESS	((vaddr_t)0xFFF00000)
 #define VM_MAX_ADDRESS		((vaddr_t)0xFFF00000)
+*/
+/* we're using transparent translation for I/O over 0x80000000 
+ * so I'm going to try setting the max VM address below that
+ */
+#define VM_MAXUSER_ADDRESS  ((vaddr_t)0x7FF00000)
+#define VM_MAX_ADDRESS 		((vaddr_t)0x7FF00000)
 #define VM_MIN_KERNEL_ADDRESS	((vaddr_t)0x00002000)
 #define VM_MAX_KERNEL_ADDRESS	((vaddr_t)(0-PAGE_SIZE*NPTEPG*2))
 

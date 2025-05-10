@@ -575,7 +575,7 @@ pmap_bootstrap(paddr_t nextpa, paddr_t firstpa)
 	RELOC(avail_end, paddr_t) = m68k_ptob(RELOC(maxmem, int)) -
 	    m68k_round_page(MSGBUFSIZE);
 	RELOC(mem_size, vsize_t) = m68k_ptob(RELOC(physmem, int));
-
+	RELOC(virtual_avail, vaddr_t) = KERNBASE + (nextpa - firstpa);
 	RELOC(virtual_end, vaddr_t) = VM_MAX_KERNEL_ADDRESS;
 
 	/*
@@ -611,11 +611,11 @@ pmap_bootstrap(paddr_t nextpa, paddr_t firstpa)
 	debugPmbsPrintInt((int)avail_end);
 	debugPmbsPrintStr("\r\n\tmem_size\t");
 	debugPmbsPrintInt((int)mem_size);
-	debugPmbsPrintStr("\r\n\tCADDR1\t");
+	debugPmbsPrintStr("\r\n\tCADDR1\t\t");
 	debugPmbsPrintInt((int)CADDR1);
-	debugPmbsPrintStr("\r\n\tCADDR2\t");
+	debugPmbsPrintStr("\r\n\tCADDR2\t\t");
 	debugPmbsPrintInt((int)CADDR2);
-	debugPmbsPrintStr("\r\n\tvmmap\t");
+	debugPmbsPrintStr("\r\n\tvmmap\t\t");
 	debugPmbsPrintInt((int)vmmap);
 	debugPmbsPrintStr("\r\n\tmsgbufaddr\t");
 	debugPmbsPrintInt((int)msgbufaddr);
@@ -623,6 +623,60 @@ pmap_bootstrap(paddr_t nextpa, paddr_t firstpa)
 	debugPmbsPrintInt((int)virtual_avail);
 	debugPmbsPrintStr("\r\n\tvirtual_end\t");
 	debugPmbsPrintInt((int)virtual_end);
-	debugPmbsPrintStr("\r\n\t\t\t");
+	/* debugPmbsPrintStr("\r\n\t\t\t"); */
+	/* I'm going to print the whole MMU table here ... */
+	debugPmbsPrintStr("\r\n*** MMU TABLE ***");
+	/* int* rpt = RELOC(Sysseg_pa,int); */
+	int* rpt = (int*)Sysseg_pa;
+	int* TIB;
+	for(int ia = 0; ia < 0x0200; ia++)
+	{
+		int tae = *(rpt + (ia << 2));
+		debugPmbsPrintStr("\r\n  ");
+		debugPmbsPrintShort(ia);
+		debugPmbsPrintStr(": ");
+		debugPmbsPrintInt(tae);
+		int bShift = 2;
+		switch(tae & 0x03)
+		{
+			case 0:
+				debugPmbsPrintStr(": invalid");
+				break;
+			case 1:
+				debugPmbsPrintStr(": page descriptor");
+			case 3:
+				bShift = 3;
+			case 2:
+				/* traverse table B */
+				TIB = (int*)(tae & 0xfffffffc);
+				for(int ib = 0; ib < 1024; ib++)
+				{
+					int tbe = *(TIB + (ib << bShift));
+					if((ib & 0x03) == 0)
+					{
+						debugPmbsPrintStr("\r\n    ");
+						debugPmbsPrintShort(ib);
+						debugPmbsPrintStr(": ");
+					}
+					debugPmbsPrintInt(tbe);
+					switch(tbe & 0x03)
+					{
+						case 0:
+							debugPmbsPrintStr(": bad,   ");
+							break;
+						case 1:
+							debugPmbsPrintStr(": page,  ");
+							break;
+						case 2:
+							debugPmbsPrintStr(": short, ");
+							break;
+						case 3:
+							debugPmbsPrintStr(": long,  ");
+							break;
+					}
+				}
+		}
+	}
+	debugPmbsPrintStr("\r\n*** MMU TABLE END *** ... ");
 	#endif
 }
