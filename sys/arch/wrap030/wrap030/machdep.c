@@ -298,11 +298,14 @@ consinit(void)
 	comcnattach((bus_space_tag_t)WRAP030_BUS_SPACE_EIO,
 		(bus_addr_t)0x80300000, 9600, COMFREQ, COM_TYPE_NORMAL, (CREAD | CS8));
 
-	#ifdef DEBUG_BOOTSTRAP_C
-	debugPrintStr("consinit() comcncattach made it back.");
-	#else
-	printf("consinit() comcnattach made it back\r\n");
-	#endif
+	printf("\r\n");
+    printf("                                ______ _____ ______\r\n");
+    printf(" _      __ _____ ____ _ ______ / __  //_   // __  /\r\n");
+    printf("| | /| / // ___// __ `// __  // / / / /_ < / / / / \r\n");
+    printf("| |/ |/ // /   / /_/ // /_/ // /_/ /___/ // /_/ /  \r\n");
+    printf("|__/|__//_/   /___,_// .___//_____//____//_____/   \r\n");
+    printf("------------------- /_/ -----------------------    \r\n");
+	printf("Primary Console Initialized\r\n");
 	/*
 	physaccess((void*)virtual_avail,
 	    (void*)0x80300000, PAGE_SIZE, PG_RW|PG_CI);

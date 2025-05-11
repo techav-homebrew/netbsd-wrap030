@@ -27,7 +27,7 @@ makeoptions	COPTS="-O2 -fno-reorder-blocks -fno-omit-frame-pointer"
 	# backtraces in DDB.
 
 # Need to set locally
-maxusers	32
+maxusers	8
 
 #options 	LEDEBUG
 
@@ -101,7 +101,7 @@ options 	COMPAT_AOUT_M68K # support for NetBSD a.out executables
 options 	DIAGNOSTIC	# Extra kernel sanity checks
 options 	DEBUG		# Enable misc. kernel debugging code
 options 	DDB		# Kernel Dynamic Debugger
-#options 	KGDB
+# options 	KGDB	# don't enable this, compile fails at trap.c
 makeoptions	DEBUG="-g"	# netbsd.gdb with full debugging symbols
 
 #options 	NFS_BOOT_DHCP
