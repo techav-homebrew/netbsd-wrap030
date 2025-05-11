@@ -86,6 +86,7 @@ __KERNEL_RCSID(0, "$NetBSD: machdep.c,v 1.72 2021/10/09 20:00:41 tsutsui Exp $")
 #include <machine/pcb.h>
 #include <machine/psl.h>
 #include <machine/pte.h>
+#include <machine/bus.h>
 
 #define	MAXMEM	16*1024	/* XXX - from cmap.h */
 
@@ -101,7 +102,7 @@ __KERNEL_RCSID(0, "$NetBSD: machdep.c,v 1.72 2021/10/09 20:00:41 tsutsui Exp $")
 #include <machine/z8530var.h>
 #include <wrap030/dev/zsvar.h>
 */
-#include <machine/wrap030_debugc.h>
+/* #include <machine/wrap030_debugc.h> */
 
 #include <dev/ic/comreg.h>
 #include <dev/ic/comvar.h>
@@ -109,6 +110,10 @@ __KERNEL_RCSID(0, "$NetBSD: machdep.c,v 1.72 2021/10/09 20:00:41 tsutsui Exp $")
 #include "ksyms.h"
 
 #define COMFREQ 1843200
+
+#ifndef COM_NPORTS
+#define COM_NPORTS 8
+#endif
 
 /* the following is used externally (sysctl_hw) */
 char machine[] = MACHINE;		/* CPU "architecture" */
@@ -141,6 +146,33 @@ int	delay_divisor;		/* delay constant */
 
 extern void sicinit(void*);
 
+
+/* Let's try to set up early console using the M6850 */
+volatile char * earlyConCom = (char *)0x80080000;
+volatile char * earlyConDat = (char *)0x80080004;
+
+static void
+earlyputc(dev_t dev, int c)
+{
+	while(!(*earlyConCom & 2));
+	*earlyConDat = (char)c;
+}
+
+static int
+earlygetc(dev_t dev)
+{
+	while(!(*earlyConCom & 1));
+	return(*earlyConDat);
+}
+
+static struct consdev earlycons = {
+	.cn_putc = earlyputc,
+	.cn_getc = earlygetc,
+	.cn_pollc = nullcnpollc,
+};
+
+
+
 void wrap030_init(void)
 {
 	/* starting over on this, using hp300 as a base */
@@ -148,8 +180,12 @@ void wrap030_init(void)
 	extern paddr_t avail_start, avail_end;
 
 	#ifdef DEBUG_BOOTSTRAP_C
-	debugPrintStr("wrap030_init()\r\n");
+	debugPrintStr("\r\nwrap030_init()\r\n");
 	#endif
+
+	/* set up early console */
+	cn_tab = &earlycons;
+	printf("wrap030_init() early console functional!\r\n");
 
 	/* 
 	 * Tell VM system about available memory.
@@ -164,6 +200,10 @@ void wrap030_init(void)
 	debugPrintStr("\r\n\tavail_end:\t");
 	debugPrintInt((int)avail_end);
 	debugPrintStr("\r\n");
+	#else
+	printf("wrap030_init() uvm_page_physload\r\n");
+	printf("\tavail_start:\t%p\r\n",avail_start);
+	printf("\tavail_end:\t%p\r\n",avail_end);
 	#endif
 
 	/*
@@ -173,9 +213,11 @@ void wrap030_init(void)
 	for (i = 0; i < btoc(MSGBUFSIZE); i++)
 	{
 		#ifdef DEBUG_BOOTSTRAP_C
-		debugPrintStr("wrap030_init() starting pmap_kenter_pa for msgbuf page ");
+		debugPrintStr("\r\nwrap030_init() starting pmap_kenter_pa for msgbuf page ");
 		debugPrintShort(i);
 		debugPrintStr(" ... ");
+		#else
+		printf("wrap030_init() allocating msgbuf page %u ... ",i);
 		#endif
 		
 		pmap_kenter_pa((vaddr_t)msgbufaddr + i * PAGE_SIZE,
@@ -183,158 +225,40 @@ void wrap030_init(void)
 		
 		#ifdef DEBUG_BOOTSTRAP_C
 		debugPrintStr("OK\r\n");
+		#else
+		printf("OK\r\n");
 		#endif
 	}
 
 	#ifdef DEBUG_BOOTSTRAP_C
-	debugPrintStr("wrap030_init() starting pmap_update()");
+	debugPrintStr("wrap030_init() starting pmap_update()\r\n");
+	#else
+	printf("wrap030_init() starting pmap_update()\r\n");
 	#endif
 	pmap_update(pmap_kernel());
 
 	#ifdef DEBUG_BOOTSTRAP_C
-	debugPrintStr("wrap030_init() starting initmsgbuf()");
+	debugPrintStr("wrap030_init() starting initmsgbuf()\r\n");
+	#else
+	printf("wrap030_init() starting initmsgbuf()\r\n");
 	#endif
 	initmsgbuf(msgbufaddr, m68k_round_page(MSGBUFSIZE));
 
+
 	#ifdef DEBUG_BOOTSTRAP_C
-	debugPrintStr("wrap030_init() done.");
+	debugPrintStr("wrap030_init() initialize iomem\r\n");
+	#else
+	printf("wrap030_init() initialize iomem\r\n");
+	#endif
+	iomem_init();
+
+	#ifdef DEBUG_BOOTSTRAP_C
+	debugPrintStr("wrap030_init() done. ");
+	#else
+	printf("wrap030_init() done. ");
 	#endif
 }
 
-#if 0
-void wrap030_init(void)
-{
-	int i;
-
-	extern paddr_t avail_start, avail_end;
-
-	#ifdef DEBUG_BOOTSTRAP_C
-	debugPrintStr("wrap030_init()\r\n");
-	#endif
-
-	boothowto = RB_SINGLE; /* XXX for now */
-	boothowto |= RB_KDB; /* XXX for now */
-
-	delay_divisor = 30; /* XXX */
-
-	/*
-	 * Tell the VM system about available physical memory.  The
-	 * fic uses one segment.
-	 */
-	#ifdef DEBUG_BOOTSTRAP_C
-	debugPrintStr("wrap030_init() uvm_page_physload\r\n\tavail_start:\t");
-	debugPrintInt((int)avail_start);
-	debugPrintStr("\r\n\tavail_end:\t");
-	debugPrintInt((int)avail_end);
-	debugPrintStr("\r\n");
-	#endif
-	uvm_page_physload(atop(avail_start), atop(avail_end),
-	    atop(avail_start), atop(avail_end), VM_FREELIST_DEFAULT);
-
-	#ifdef DEBUG_BOOTSTRAP_C
-	debugPrintStr("wrap030_init() uvm_page_physload done\r\n");
-	#endif
-	/*
-	 * map and init interrupt controller
-	 */
-	/*
-	physaccess((void*)virtual_avail, (void*)0x44000000,
-	    PAGE_SIZE, PG_RW|PG_CI);
-	sicinit((void*)virtual_avail);
-	virtual_avail += PAGE_SIZE;
-	*/
-
-	/*
-	 * Initialize error message buffer (at end of core).
-	 * avail_end was pre-decremented in pmap_bootstrap to compensate.
-	 */
-	#ifdef DEBUG_BOOTSTRAP_C
-	debugPrintStr("wrap030_init() map message buffer pages\r\n");
-	#endif
-	/* this bit pulled from hp300/luna68k/news68k 
-	for (i = 0; i < btoc(MSGBUFSIZE); i++)
-		pmap_kenter_pa((vaddr_t)msgbufaddr + i * PAGE_SIZE,
-		    avail_end + i * PAGE_SIZE, VM_PROT_READ|VM_PROT_WRITE, 0); */ 
-	for (i = 0; i < btoc(MSGBUFSIZE); i++)
-		pmap_enter(pmap_kernel(), (vaddr_t)msgbufaddr + i * PAGE_SIZE,
-		    avail_end + i * PAGE_SIZE, VM_PROT_READ|VM_PROT_WRITE,
-		    VM_PROT_READ|VM_PROT_WRITE|PMAP_WIRED); 
-	
-	#ifdef DEBUG_BOOTSTRAP_C
-	debugPrintStr("wrap030_init() message buffer pages mapped\r\n\tavail_start:\t");
-	debugPrintInt((int)avail_start);
-	debugPrintStr("\r\n\tavail_end:\t");
-	debugPrintInt((int)avail_end);
-	debugPrintStr("\r\n");
-	debugPrintStr("wrap030_init() pmap_update ... ");
-	#endif
-	pmap_update(pmap_kernel());
-
-	#ifdef DEBUG_BOOTSTRAP_C
-	/* I'm going to print the whole MMU table here ... */
-	debugPrintStr("OK\r\n*** MMU TABLE ***");
-	/* int* rpt = RELOC(Sysseg_pa,int); */
-	int* rpt = (int*)Sysseg_pa;
-	int* TIB;
-	for(int ia = 0; ia < 0x0200; ia++)
-	{
-		int tae = *(rpt + (ia << 2));
-		debugPrintStr("\r\n  ");
-		debugPrintShort(ia);
-		debugPrintStr(": ");
-		debugPrintInt(tae);
-		int bShift = 2;
-		switch(tae & 0x03)
-		{
-			case 0:
-				debugPrintStr(": invalid");
-				break;
-			case 1:
-				debugPrintStr(": page descriptor");
-			case 3:
-				bShift = 3;
-			case 2:
-				/* traverse table B */
-				TIB = (int*)(tae & 0xfffffffc);
-				for(int ib = 0; ib < 1024; ib++)
-				{
-					int tbe = *(TIB + (ib << bShift));
-					if((ib & 0x03) == 0)
-					{
-						debugPrintStr("\r\n    ");
-						debugPrintShort(ib);
-						debugPrintStr(": ");
-					}
-					debugPrintInt(tbe);
-					switch(tbe & 0x03)
-					{
-						case 0:
-							debugPrintStr(": bad,   ");
-							break;
-						case 1:
-							debugPrintStr(": page,  ");
-							break;
-						case 2:
-							debugPrintStr(": short, ");
-							break;
-						case 3:
-							debugPrintStr(": long,  ");
-							break;
-					}
-				}
-		}
-	}
-	debugPrintStr("\r\n*** MMU TABLE END *** ... ");
-	debugPrintStr("wrap030_init() initmsgbuf\r\n");
-	#endif
-	/* initmsgbuf(msgbufaddr, m68k_round_page(MSGBUFSIZE)); */
-	initmsgbuf(msgbufaddr, MSGBUFSIZE);
-
-	#ifdef DEBUG_BOOTSTRAP_C
-	debugPrintStr("wrap030_init() exiting ... ");
-	#endif
-}
-#endif
 
 /*
 int
@@ -367,13 +291,23 @@ extern void sic_enable_int(int, int, int, int, int);
 void
 consinit(void)
 {
-
+	#ifdef DEBUG_BOOTSTRAP_C
+	debugPrintStr("consinit() called by kernel!");
+	#else
+	printf("consinit() called by kernel.\r\n");
+	#endif
 	/*
 	 * Initialize the console before we print anything out.
 	 */
 	/* i'm not entirely sure what we should be giving this here ... */
 	comcnattach((bus_space_tag_t)0x80000000,
 	    (bus_addr_t)0x00300000, 9600, COMFREQ, COM_TYPE_NORMAL, (CREAD | CS8));
+
+	#ifdef DEBUG_BOOTSTRAP_C
+	debugPrintStr("consinit() comcncattach made it back.");
+	#else
+	printf("consinit() comcnattach made it back\r\n");
+	#endif
 	/*
 	physaccess((void*)virtual_avail,
 	    (void*)0x80300000, PAGE_SIZE, PG_RW|PG_CI);
@@ -396,6 +330,9 @@ consinit(void)
 		Debugger();
 #endif
 	/*sic_enable_int(39, 2, 1, 7, 0);*/ /* NMI */
+	#ifdef DEBUG_BOOTSTRAP_C
+	debugPrintStr("consinit() done.");
+	#endif
 }
 
 /*
