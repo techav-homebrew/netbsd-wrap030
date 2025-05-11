@@ -47,7 +47,7 @@ __KERNEL_RCSID(0, "$NetBSD: pmap_bootstrap.c,v 1.35 2021/07/24 21:31:32 andvar E
 
 
 
-#define DEBUG_PMBS_LOG
+/* #define DEBUG_PMBS_LOG */
 
 #ifdef DEBUG_PMBS_LOG
 static inline void debugPmbsPrintChar(char);

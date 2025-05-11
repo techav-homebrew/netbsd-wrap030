@@ -51,6 +51,8 @@ __KERNEL_RCSID(0, "$NetBSD: bus.c,v 1.67 2022/07/26 20:08:55 andvar Exp $");
 
 #include <machine/bus.h>
 
+/* #include <machine/wrap030_debugc.h> */
+
 /*
  * Extent maps to manage all memory space, including I/O ranges.  Allocate
  * storage for 16 regions in each, initially.  Later, iomem_malloc_safe
@@ -59,9 +61,8 @@ __KERNEL_RCSID(0, "$NetBSD: bus.c,v 1.67 2022/07/26 20:08:55 andvar Exp $");
  * This means that the fixed static storage is only used for registrating
  * the found memory regions and the bus-mapping of the console.
  */
-/* 
-static long iomem_ex_storage[EXTENT_FIXED_STORAGE_SIZE(16) / sizeof(long)]; 
-*/
+
+static long iomem_ex_storage[EXTENT_FIXED_STORAGE_SIZE(32) / sizeof(long)]; 
 static struct extent *iomem_ex;
 static int iomem_malloc_safe = 0;
 
@@ -72,6 +73,21 @@ static int  bus_mem_add_mapping(bus_space_tag_t t, bus_addr_t bpa,
 		bus_size_t size, int flags, bus_space_handle_t *bsph);
 
 extern paddr_t avail_end;
+
+void iomem_init(void)
+{
+	printf("iomem_init() extent_create(\"iomem\",0x80000000,0xffffffff,\r\n");
+	printf("\t\t%p,%u,%u\r\n",
+		iomem_ex_storage,sizeof(iomem_ex_storage),EX_NOCOALESCE|EX_NOWAIT);
+
+	printf("iomem_init() iomem_ex before: %p ex_start = %08x\r\n",iomem_ex,iomem_ex->ex_start);
+
+	iomem_ex = extent_create("iomem",0x80000000,0xffffffff,
+		(void *)iomem_ex_storage, sizeof(iomem_ex_storage),
+		EX_NOCOALESCE|EX_NOWAIT);
+	
+	printf("iomem_init() iomem_ex after: %p ex_start = %08x\r\n",iomem_ex,iomem_ex->ex_start);
+}
 
 
 /*
@@ -84,14 +100,16 @@ extern paddr_t avail_end;
  * This allows for the console code to use the bus_space interface at a
  * very early stage of the system configuration.
  */
-static pt_entry_t	*bootm_ptep;
-static long		bootm_ex_storage[EXTENT_FIXED_STORAGE_SIZE(32) /
+/* static pt_entry_t	*bootm_ptep; */
+static pt_entry_t 	*iomem_ptep;
+/* static long		bootm_ex_storage[EXTENT_FIXED_STORAGE_SIZE(32) /
 								sizeof(long)];
-static struct extent	*bootm_ex;
+static struct extent	*bootm_ex; */
 
-static vaddr_t	bootm_alloc(paddr_t pa, u_long size, int flags);
-static int	bootm_free(vaddr_t va, u_long size);
+vaddr_t	bootm_alloc(paddr_t pa, u_long size, int flags);
+int	bootm_free(vaddr_t va, u_long size);
 
+/*
 void bootm_init(vaddr_t, void*, vsize_t);
 
 void
@@ -103,6 +121,7 @@ bootm_init(vaddr_t va, void *ptep, vsize_t size)
 	    EX_NOCOALESCE|EX_NOWAIT);
 	bootm_ptep = (pt_entry_t *)ptep;
 }
+*/
 
 vaddr_t
 bootm_alloc(paddr_t pa, u_long size, int flags)
@@ -111,14 +130,18 @@ bootm_alloc(paddr_t pa, u_long size, int flags)
 	pt_entry_t	pg_proto;
 	vaddr_t		va, rva;
 
-	if (extent_alloc(bootm_ex, size, PAGE_SIZE, 0, EX_NOWAIT, &rva) != 0) {
+	printf("bootm_alloc(%p,%x,%x)\r\n",pa,size,flags);
+
+	/*if (extent_alloc(bootm_ex, size, PAGE_SIZE, 0, EX_NOWAIT, &rva) != 0) {*/
+	if (extent_alloc(iomem_ex, size, PAGE_SIZE, 0, EX_NOWAIT, &rva) != 0) {
 		printf("bootm_alloc fails! Not enough fixed extents?\n");
 		printf("Requested extent: pa=%lx, size=%lx\n",
 						(u_long)pa, size);
 		return 0;
 	}
 	
-	pg  = &bootm_ptep[btoc(rva - bootm_ex->ex_start)];
+	/* pg  = &bootm_ptep[btoc(rva - bootm_ex->ex_start)]; */
+	pg = &iomem_ptep[btoc(rva - iomem_ex->ex_start)];
 	epg = &pg[btoc(size)];
 	va  = rva;
 	pg_proto = pa | PG_RW | PG_V;
@@ -136,6 +159,9 @@ bootm_alloc(paddr_t pa, u_long size, int flags)
 		TBIS(va);
 		va += PAGE_SIZE;
 	}
+
+	printf("bootm_alloc() done. returning %p",rva);
+
 	return rva;
 }
 
@@ -143,9 +169,11 @@ int
 bootm_free(vaddr_t va, u_long size)
 {
 
-	if ((va < bootm_ex->ex_start) || ((va + size) > bootm_ex->ex_end))
+	/*if ((va < bootm_ex->ex_start) || ((va + size) > bootm_ex->ex_end))*/
+	if ((va < iomem_ex->ex_start) || ((va + size) > iomem_ex->ex_end))
 		return 0; /* Not for us! */
-	extent_free(bootm_ex, va, size, EX_NOWAIT);
+	/* extent_free(bootm_ex, va, size, EX_NOWAIT); */
+	extent_free(iomem_ex, va, size, EX_NOWAIT);
 	return 1;
 }
 
@@ -159,22 +187,34 @@ bus_space_map(bus_space_tag_t t, bus_addr_t bpa, bus_size_t size, int flags,
 {
 	int	error;
 
+	#ifdef DEBUG_BOOTSTRAP_C
+	debugPrintStr("\r\bus_space_map()\r\n");
+	#else
+	printf("bus_space_map(%x,%x,%u,%u,%p)\r\n",t,bpa,size,flags,mhp);
+	#endif
+
 	/*
 	 * Before we go any further, let's make sure that this
 	 * region is available.
 	 */
+	printf("bus_space_map() extent_alloc_region(%p,%x,%x,%u)\r\n",
+		iomem_ex, bpa+t, size, EX_NOWAIT | iomem_malloc_safe);
 	/* error = extent_alloc_region(iomem_ex, bpa + t->base, size,
 			EX_NOWAIT | iomem_malloc_safe); */
     error = extent_alloc_region(iomem_ex, bpa + t, size,
             EX_NOWAIT | iomem_malloc_safe);
 
+	printf("bus_space_map() extent_alloc_region() done; error: %x\r\n",error);
+
 	if (error != 0)
 		return error;
 
+	printf("bus_space_map() bus_mem_add_mapping(%x,%x,%u,%u,%p)\r\n",t,bpa,size,flags,mhp);
 	error = bus_mem_add_mapping(t, bpa, size, flags, mhp);
 	if (error != 0) {
 		/* if (extent_free(iomem_ex, bpa + t->base, size,
 		    EX_NOWAIT | iomem_malloc_safe)) { */
+		printf("bus_space_map() error %x from bus_mem_add_mapping()\r\n");
         if (extent_free(iomem_ex, bpa + t, size,
             EX_NOWAIT | iomem_malloc_safe)) {
 			printf("%s: pa 0x%lx, size 0x%lx\n",
@@ -182,6 +222,8 @@ bus_space_map(bus_space_tag_t t, bus_addr_t bpa, bus_size_t size, int flags,
 			printf("%s: can't free region\n", __func__);
 		}
 	}
+
+	printf("bus_space_map() done. returning %x\r\n",error);
 	return error;
 }
 
@@ -194,6 +236,8 @@ bus_mem_add_mapping(bus_space_tag_t t, bus_addr_t bpa, bus_size_t size,
 	vaddr_t	va;
 	paddr_t	pa, endpa;
 
+	printf("bus_mem_add_mapping(%x,%x,%u,%u,%p)\r\n",t,bpa,size,flags,bshp);
+
 	/*
     pa    = m68k_trunc_page(bpa + t->base);
 	endpa = m68k_round_page((bpa + t->base + size) - 1);
@@ -202,12 +246,15 @@ bus_mem_add_mapping(bus_space_tag_t t, bus_addr_t bpa, bus_size_t size,
 	pa    = m68k_trunc_page(bpa + t);
 	endpa = m68k_round_page((bpa + t + size) - 1);
 
+	printf("bus_mem_add_mapping() pa: %p; endpa: %p\r\n",pa,endpa);
+
 #ifdef DIAGNOSTIC
 	if (endpa <= pa)
 		panic("%s: overflow", __func__);
 #endif
 
 	if (kernel_map == NULL) {
+		printf("bus_mem_add_mapping() kernel_map is null. allocating from iomem.\r\n");
 		/*
 		 * The VM-system is not yet operational, allocate from
 		 * a special pool.
@@ -216,8 +263,11 @@ bus_mem_add_mapping(bus_space_tag_t t, bus_addr_t bpa, bus_size_t size,
 		if (va == 0)
 			return ENOMEM;
 		*bshp = va + (bpa & PGOFSET);
+
+		printf("bus_mem_add_mapping() done with iomem.\r\n");
 		return 0;
 	}
+	printf("bus_mem_add_mapping() kernel_map is active. using it.\r\n");
 
 	va = uvm_km_alloc(kernel_map, endpa - pa, 0,
 	    UVM_KMF_VAONLY | UVM_KMF_NOWAIT);
@@ -244,6 +294,8 @@ bus_mem_add_mapping(bus_space_tag_t t, bus_addr_t bpa, bus_size_t size,
 	}
 	pmap_update(pmap_kernel());
 	TBIAS();
+
+	printf("bus_mem_add_mapping() done.\r\n");
 	return 0;
 }
 

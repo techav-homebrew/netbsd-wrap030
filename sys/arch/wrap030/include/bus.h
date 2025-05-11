@@ -51,6 +51,8 @@ typedef u_long	bus_space_handle_t;
 #define PRIxBSH		"lx"
 */
 
+void iomem_init(void);
+
 /*
  *	int bus_space_map(bus_space_tag_t t, bus_addr_t addr,
  *	    bus_size_t size, int flags, bus_space_handle_t *bshp);
