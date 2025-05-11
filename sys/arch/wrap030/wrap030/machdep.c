@@ -244,14 +244,6 @@ void wrap030_init(void)
 	#endif
 	initmsgbuf(msgbufaddr, m68k_round_page(MSGBUFSIZE));
 
-
-	#ifdef DEBUG_BOOTSTRAP_C
-	debugPrintStr("wrap030_init() initialize iomem\r\n");
-	#else
-	printf("wrap030_init() initialize iomem\r\n");
-	#endif
-	iomem_init();
-
 	#ifdef DEBUG_BOOTSTRAP_C
 	debugPrintStr("wrap030_init() done. ");
 	#else
@@ -300,8 +292,11 @@ consinit(void)
 	 * Initialize the console before we print anything out.
 	 */
 	/* i'm not entirely sure what we should be giving this here ... */
-	comcnattach((bus_space_tag_t)0x80000000,
-	    (bus_addr_t)0x00300000, 9600, COMFREQ, COM_TYPE_NORMAL, (CREAD | CS8));
+	/*comcnattach((bus_space_tag_t)0x80000000,
+	    (bus_addr_t)0x00300000, 9600, COMFREQ, COM_TYPE_NORMAL, (CREAD | CS8));*/
+	
+	comcnattach((bus_space_tag_t)WRAP030_BUS_SPACE_EIO,
+		(bus_addr_t)0x80300000, 9600, COMFREQ, COM_TYPE_NORMAL, (CREAD | CS8));
 
 	#ifdef DEBUG_BOOTSTRAP_C
 	debugPrintStr("consinit() comcncattach made it back.");
