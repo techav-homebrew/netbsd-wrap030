@@ -25,8 +25,8 @@ NEED_OWN_INSTALL_TARGET?=no
 ##
 ## (1) port identification
 ##
-CESFIC=		$S/arch/wrap030
-GENASSYM_CONF=	${CESFIC}/wrap030/genassym.cf
+WRAP030=		$S/arch/wrap030
+GENASSYM_CONF=	${WRAP030}/wrap030/genassym.cf
 
 ##
 ## (2) compile settings
@@ -51,9 +51,9 @@ OPT_MODULAR=	%MODULAR%
 MD_OBJS=	locore.o
 MD_LIBS=	${FPSP}
 MD_CFILES=
-MD_SFILES=	${CESFIC}/wrap030/locore.s
+MD_SFILES=	${WRAP030}/wrap030/locore.s
 
-locore.o: ${CESFIC}/wrap030/locore.s assym.h
+locore.o: ${WRAP030}/wrap030/locore.s assym.h
 	${NORMAL_S}
 
 ##

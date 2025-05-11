@@ -53,6 +53,17 @@
 
 #if defined(_KERNEL)
 
+/* physical memory segments (following example from hp300) */
+/* not going to use these, will use transparent translation instead 
+#define INTIOBASE	(0x80000000)
+#define INTIOTOP 	(0xffffffff)
+#define	IIOMAPSIZE	btoc(INTIOTOP-INTIOBASE)
+*/
+/* since we're using transparent translation for anything above
+ * 0x80000000, then MAXADDR needs to be set below that
+ * #define	MAXADDR		((paddr_t)(0 - NBPG))
+ */
+#define MAXADDR		((paddr_t)(0x80000000 - NBPG))
 /*
  * Arguments to hardclock and gatherstats encapsulate the previous
  * machine state in an opaque clockframe.  On the wrap030, we use
@@ -108,9 +119,11 @@ extern int astpending;		/* need to trap before returning to user mode */
 /* ! M68040 */
 
 /* force 68030 */
+#ifdef M68040
+#undef 	M68040
+#endif
 #ifndef M68030
 #define M68030
-#undef 	M68040
 #endif
 
 

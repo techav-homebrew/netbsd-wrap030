@@ -143,6 +143,67 @@ extern void sicinit(void*);
 
 void wrap030_init(void)
 {
+	/* starting over on this, using hp300 as a base */
+	int i;
+	extern paddr_t avail_start, avail_end;
+
+	#ifdef DEBUG_BOOTSTRAP_C
+	debugPrintStr("wrap030_init()\r\n");
+	#endif
+
+	/* 
+	 * Tell VM system about available memory.
+	 * Wrap030 only has one segment.
+	 */
+	uvm_page_physload(atop(avail_start), atop(avail_end),
+		atop(avail_start), atop(avail_end), VM_FREELIST_DEFAULT);
+	
+	#ifdef DEBUG_BOOTSTRAP_C
+	debugPrintStr("wrap030_init() uvm_page_physload\r\n\tavail_start:\t");
+	debugPrintInt((int)avail_start);
+	debugPrintStr("\r\n\tavail_end:\t");
+	debugPrintInt((int)avail_end);
+	debugPrintStr("\r\n");
+	#endif
+
+	/*
+	 * Initialize error message buffer (at end of core).
+	 * avail_end was pre-decremented in pmap_bootstrap to compensate.
+	 */
+	for (i = 0; i < btoc(MSGBUFSIZE); i++)
+	{
+		#ifdef DEBUG_BOOTSTRAP_C
+		debugPrintStr("wrap030_init() starting pmap_kenter_pa for msgbuf page ");
+		debugPrintShort(i);
+		debugPrintStr(" ... ");
+		#endif
+		
+		pmap_kenter_pa((vaddr_t)msgbufaddr + i * PAGE_SIZE,
+			avail_end + i * PAGE_SIZE, VM_PROT_READ | VM_PROT_WRITE, 0);
+		
+		#ifdef DEBUG_BOOTSTRAP_C
+		debugPrintStr("OK\r\n");
+		#endif
+	}
+
+	#ifdef DEBUG_BOOTSTRAP_C
+	debugPrintStr("wrap030_init() starting pmap_update()");
+	#endif
+	pmap_update(pmap_kernel());
+
+	#ifdef DEBUG_BOOTSTRAP_C
+	debugPrintStr("wrap030_init() starting initmsgbuf()");
+	#endif
+	initmsgbuf(msgbufaddr, m68k_round_page(MSGBUFSIZE));
+
+	#ifdef DEBUG_BOOTSTRAP_C
+	debugPrintStr("wrap030_init() done.");
+	#endif
+}
+
+#if 0
+void wrap030_init(void)
+{
 	int i;
 
 	extern paddr_t avail_start, avail_end;
@@ -273,6 +334,7 @@ void wrap030_init(void)
 	debugPrintStr("wrap030_init() exiting ... ");
 	#endif
 }
+#endif
 
 /*
 int

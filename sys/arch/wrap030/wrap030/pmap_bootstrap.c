@@ -123,6 +123,497 @@ void *msgbufaddr;
 
 void pmap_bootstrap(paddr_t, paddr_t);
 
+/* 
+ * Bootstrap the VM system.accmode_t
+ *
+ * Called with MMU off, so we must relocate all global references by 'firstpa'
+ * (don't call any functions here!) 'nextpa' is the first available physical
+ * memory address. Returns an updated first PA reflecting the memory we
+ * have allocated. MMU is still off when we return.
+ * 
+ * XXX assumes sizeof(u_int) == sizeof(pt_entry_t)
+ * XXX a PIC compiler would make this much easier
+ */
+void
+pmap_bootstrap(paddr_t nextpa, paddr_t firstpa)
+{
+	/* starting over on this, using hp300 as a base */
+	paddr_t lwp0upa, kstpa, kptmpa, kptpa;
+	paddr_t lkptpa;
+	u_int nptpages, kstsize;
+	st_entry_t protoste, *ste, *este;
+	pt_entry_t protopte, *pte, *epte;
+	/*u_int stfree = 0;*/	/* XXX: gcc -Wuninitialized */
+
+	#ifdef DEBUG_PMBS_LOG
+	debugPmbsPrintStr("\r\npmap_boostrap(");
+	debugPmbsPrintInt((int)nextpa);
+	debugPmbsPrintChar(',');
+	debugPmbsPrintInt((int)firstpa);
+	debugPmbsPrintStr(")\r\n");
+	#endif
+
+	/*
+	 * Calculate important physical addresses:
+	 *
+	 *	lwp0upa		lwp0 u-area		UPAGES pages
+	 *
+	 *	kstpa		kernel segment table	1 page (!040)
+	 *						N pages (040)
+	 *
+	 *	kptmpa		kernel PT map		1 page
+	 *
+	 *	lkptpa		last kernel PT page	1 page
+	 *
+	 *	kptpa		statically allocated
+	 *			kernel PT pages		Sysptsize+ pages
+	 *
+	 * [ Sysptsize is the number of pages of PT, and IIOMAPSIZE and
+	 *   EIOMAPSIZE are the number of PTEs, hence we need to round
+	 *   the total to a page boundary with IO maps at the end. ]
+	 *
+	 * The KVA corresponding to any of these PAs is:
+	 *	(PA - firstpa + KERNBASE).
+	 */
+	lwp0upa = nextpa;
+	nextpa += USPACE;
+	#ifdef M68040
+	if (RELOC(mmutype, int) == MMU_68040)
+		kstsize = MAXKL2SIZE / (NPTEPG/SG4_LEV2SIZE);
+	else
+	#endif
+		kstsize = 1;
+	kstpa = nextpa;
+	nextpa += kstsize * PAGE_SIZE;
+	kptmpa = nextpa;
+	nextpa += PAGE_SIZE;
+	lkptpa = nextpa;
+	nextpa += PAGE_SIZE;
+	kptpa = nextpa;
+	nptpages = RELOC(Sysptsize, int) + howmany(RELOC(physmem, int), NPTEPG);
+
+	nextpa += nptpages * PAGE_SIZE;
+
+	#ifdef DEBUG_PMBS_LOG
+	debugPmbsPrintStr("pmap_bootstrap() initial physical addresses:\r\n\tlwp0upa:\t");
+	debugPmbsPrintInt((int)lwp0upa);
+	debugPmbsPrintStr("\r\n\tkstpa:\t\t");
+	debugPmbsPrintInt((int)kstpa);
+	debugPmbsPrintStr("\r\n\tkptmpa:\t\t");
+	debugPmbsPrintInt((int)kptmpa);
+	debugPmbsPrintStr("\r\n\tlkptpa:\t\t");
+	debugPmbsPrintInt((int)lkptpa);
+	debugPmbsPrintStr("\r\n\tkptpa:\t\t");
+	debugPmbsPrintInt((int)kptpa);
+	debugPmbsPrintStr("\r\n\tnptpages:\t");
+	debugPmbsPrintInt((int)nptpages);
+	debugPmbsPrintStr("\r\n\tnextpa:\t\t");
+	debugPmbsPrintInt((int)nextpa);
+	debugPmbsPrintStr("\r\n");
+	#endif
+
+	/*
+	 * Initialize segment table and kernel page table map.
+	 *
+	 * On 68030s and earlier MMUs the two are identical except for
+	 * the valid bits so both are initialized with essentially the
+	 * same values.  On the 68040, which has a mandatory 3-level
+	 * structure, the segment table holds the level 1 table and part
+	 * (or all) of the level 2 table and hence is considerably
+	 * different.  Here the first level consists of 128 descriptors
+	 * (512 bytes) each mapping 32mb of address space.  Each of these
+	 * points to blocks of 128 second level descriptors (512 bytes)
+	 * each mapping 256kb.  Note that there may be additional "segment
+	 * table" pages depending on how large MAXKL2SIZE is.
+	 *
+	 * Portions of the last two segment of KVA space (0xFF800000 -
+	 * 0xFFFFFFFF) are mapped for a couple of purposes.
+	 * The first segment (0xFF800000 - 0xFFBFFFFF) is mapped
+	 * for the kernel page tables.
+	 * The very last page (0xFFFFF000) in the second segment is mapped
+	 * to the last physical page of RAM to give us a region in which
+	 * PA == VA.  We use the first part of this page for enabling
+	 * and disabling mapping.  The last part of this page also contains
+	 * info left by the boot ROM.
+	 *
+	 * XXX cramming two levels of mapping into the single "segment"
+	 * table on the 68040 is intended as a temporary hack to get things
+	 * working.  The 224mb of address space that this allows will most
+	 * likely be insufficient in the future (at least for the kernel).
+	 */
+	/*
+	 * Map the page table pages in both the HW segment table
+	 * and the software Sysptmap.
+	 */
+	ste = (st_entry_t *)kstpa;
+	pte = (pt_entry_t *)kptmpa;
+	epte = &pte[nptpages];
+	protoste = kptpa | SG_RW | SG_V;
+	protopte = kptpa | PG_RW | PG_CI | PG_V;
+	#ifdef DEBUG_PMBS_LOG
+	debugPmbsPrintStr("pmap_bootstrap() initialize segment table & kernel page table map:\r\n\tste:\t\t");
+	debugPmbsPrintInt((int)ste);
+	debugPmbsPrintStr("\r\n\tpte:\t\t");
+	debugPmbsPrintInt((int)pte);
+	debugPmbsPrintStr("\r\n\tepte:\t\t");
+	debugPmbsPrintInt((int)epte);
+	debugPmbsPrintStr("\r\n\tprotoste:\t");
+	debugPmbsPrintInt((int)protoste);
+	debugPmbsPrintStr("\r\n\tprotopte:\t");
+	debugPmbsPrintInt((int)protopte);
+	debugPmbsPrintStr("\r\n\t...\r\n");
+	#endif
+	while (pte < epte) {
+		*ste++ = protoste;
+		*pte++ = protopte;
+		protoste += PAGE_SIZE;
+		protopte += PAGE_SIZE;
+	}
+	#ifdef DEBUG_PMBS_LOG
+	debugPmbsPrintStr("\r\n\tste:\t\t");
+	debugPmbsPrintInt((int)ste);
+	debugPmbsPrintStr("\r\n\tpte:\t\t");
+	debugPmbsPrintInt((int)pte);
+	#endif
+	/*
+	 * Invalidate all remaining entries in both.
+	 */
+	este = (st_entry_t *)kstpa;
+	este = &este[TIA_SIZE];
+	#ifdef DEBUG_PMBS_LOG
+	debugPmbsPrintStr("\r\npmap_bootstrap() invalidate remaining entries\r\n\teste:\t\t");
+	debugPmbsPrintInt((int)este);
+	debugPmbsPrintStr("\r\n\t...\r\n");
+	#endif
+	while (ste < este)
+		*ste++ = SG_NV;
+	epte = (pt_entry_t *)kptmpa;
+	epte = &epte[TIB_SIZE];
+	#ifdef DEBUG_PMBS_LOG
+	debugPmbsPrintStr("\tste:\t\t");
+	debugPmbsPrintInt((int)ste);
+	debugPmbsPrintStr("\r\n\tepte:\t\t");
+	debugPmbsPrintInt((int)epte);
+	debugPmbsPrintStr("\r\n\t...\r\n");
+	#endif
+	while (pte < epte)
+		*pte++ = PG_NV;
+	#ifdef DEBUG_PMBS_LOG
+	debugPmbsPrintStr("\tpte:\t\t");
+	debugPmbsPrintInt((int)pte);
+	#endif
+	/*
+	 * Initialize the last ones to point to Sysptmap and the page
+	 * table page allocated earlier.
+	 */
+	#ifdef DEBUG_PMBS_LOG
+	debugPmbsPrintStr("\r\npmap_bootstrap() initialize last entries to point to Sysptmap\r\n");
+	#endif
+	ste = (st_entry_t *)kstpa;
+	ste = &ste[SYSMAP_VA >> SEGSHIFT];
+	pte = (pt_entry_t *)kptmpa;
+	pte = &pte[SYSMAP_VA >> SEGSHIFT];
+	*ste = kptmpa | SG_RW | SG_V;
+	*pte = kptmpa | PG_RW | PG_CI | PG_V;
+	ste = (st_entry_t *)kstpa;
+	ste = &ste[MAXADDR >> SEGSHIFT];
+	pte = (pt_entry_t *)kptmpa;
+	pte = &pte[MAXADDR >> SEGSHIFT];
+	*ste = lkptpa | SG_RW | SG_V;
+	*pte = lkptpa | PG_RW | PG_CI | PG_V;
+	#ifdef DEBUG_PMBS_LOG
+	debugPmbsPrintStr("\tste:\t\t");
+	debugPmbsPrintInt((int)ste);
+	debugPmbsPrintStr("\r\n\tpte:\t\t");
+	debugPmbsPrintInt((int)pte);
+	#endif
+	/*
+	 * Invalidate all but the final entry in the last kernel PT page.
+	 * The final entry maps the last page of physical memory to
+	 * prepare a page that is PA == VA to turn on the MMU.
+	 */
+	pte = (pt_entry_t *)lkptpa;
+	epte = &pte[NPTEPG - 1];
+	#ifdef DEBUG_PMBS_LOG
+	debugPmbsPrintStr("\r\npmap_bootstrap() invalidate rest of kernel PT page\r\n\tpte:\t\t");
+	debugPmbsPrintInt((int)pte);
+	debugPmbsPrintStr("\r\n\tepte:\t\t");
+	debugPmbsPrintInt((int)epte);
+	debugPmbsPrintStr("\r\n\t...\r\n");
+	#endif
+	while (pte < epte)
+		*pte++ = PG_NV;
+	*pte = MAXADDR | PG_RW | PG_CI | PG_V;
+	
+	#ifdef DEBUG_PMBS_LOG
+	debugPmbsPrintStr("\tpte:\t\t");
+	debugPmbsPrintInt((int)pte);
+	#endif
+	/*
+	 * Initialize kernel page table.
+	 * Start by invalidating the `nptpages' that we have allocated.
+	 * 
+	 */
+	pte = (pt_entry_t *)kptpa;
+	epte = &pte[nptpages * NPTEPG];
+	#ifdef DEBUG_PMBS_LOG
+	debugPmbsPrintStr("\r\npmap_bootstrap() invalidate allocated nptpages\r\n\tpte:\t\t");
+	debugPmbsPrintInt((int)pte);
+	debugPmbsPrintStr("\r\n\tepte:\t\t");
+	debugPmbsPrintInt((int)epte);
+	debugPmbsPrintStr("\r\n\t...\r\n");
+	#endif
+	while (pte < epte)
+		*pte++ = PG_NV;
+	#ifdef DEBUG_PMBS_LOG
+	debugPmbsPrintStr("\tpte:\t\t");
+	debugPmbsPrintInt((int)pte);
+	#endif
+	/*
+	 * Validate PTEs for kernel text (RO).
+	 * For Wrap030, first must be valid, differing from hp300
+	 */
+	pte = (pt_entry_t *)kptpa;
+	/* pte = &pte[m68k_btop(KERNBASE + PAGE_SIZE)]; */
+	pte = &pte[m68k_btop(KERNBASE)];
+	epte = &pte[m68k_btop(m68k_trunc_page(&etext))];
+	/* protopte = (firstpa + PAGE_SIZE) | PG_RO | PG_V; */
+	protopte = firstpa | PG_RO | PG_V;
+	#ifdef DEBUG_PMBS_LOG
+	debugPmbsPrintStr("\r\npmap_bootstrap() validate PTEs for kernel text (RO)\r\n\tpte:\t\t");
+	debugPmbsPrintInt((int)pte);
+	debugPmbsPrintStr("\r\n\tepte:\t\t");
+	debugPmbsPrintInt((int)epte);
+	debugPmbsPrintStr("\r\n\tprotopte:\t");
+	debugPmbsPrintInt((int)protopte);
+	debugPmbsPrintStr("\r\n\t...\r\n");
+	#endif
+	while (pte < epte) {
+		*pte++ = protopte;
+		protopte += PAGE_SIZE;
+	}
+	#ifdef DEBUG_PMBS_LOG
+	debugPmbsPrintStr("\tpte:\t\t");
+	debugPmbsPrintInt((int)pte);
+	#endif
+	/*
+	 * Validate PTEs for kernel data/bss, dynamic data allocated
+	 * by us so far (kstpa - firstpa bytes), and pages for lwp0
+	 * u-area and page table allocated below (RW).
+	 * 
+	 */
+	epte = (pt_entry_t *)kptpa;
+	epte = &epte[m68k_btop(kstpa - firstpa)];
+	protopte = (protopte & ~PG_PROT) | PG_RW;
+	#ifdef DEBUG_PMBS_LOG
+	debugPmbsPrintStr("\r\npmap_bootstrap() validate PTEs for kernel data/bss\r\n\tepte:\t\t");
+	debugPmbsPrintInt((int)epte);
+	debugPmbsPrintStr("\r\n\tprotopte:\t");
+	debugPmbsPrintInt((int)protopte);
+	debugPmbsPrintStr("\r\n\t...");
+	#endif
+	while (pte < epte) {
+		*pte++ = protopte;
+		protopte += PAGE_SIZE;
+	}
+	#ifdef DEBUG_PMBS_LOG
+	debugPmbsPrintStr("\r\n\tpte:\t\t");
+	debugPmbsPrintInt((int)pte);
+	debugPmbsPrintStr("\r\n");
+	#endif
+
+	/*
+	 * Map the kernel segment table cache invalidated for 68040/68060.
+	 * (for the 68040 not strictly necessary, but recommended by Motorola;
+	 *  for the 68060 mandatory)
+	 * 
+	 * techav -- I don't like that the comments for this section only reference
+	 * '040/'060, because this bit is not just running on those CPUs,
+	 * and while it looks very similar to the last loop that was run, 
+	 * the loop end condition (epte) is different. I think this might be what
+	 * I was missing before, where I had a bug that pages where the MMU tables
+	 * themselves were located never got set as valid & writeable, so pmap
+	 * wasn't able to actually allocate any memory.
+	 */
+	epte = (pt_entry_t *)kptpa;
+	epte = &epte[m68k_btop(nextpa - firstpa)];
+	protopte = (protopte & ~PG_PROT) | PG_RW;
+	#ifdef M68040
+	if (RELOC(mmutype, int) == MMU_68040) {
+		protopte &= ~PG_CMASK;
+		protopte |= PG_CI;
+	}
+	#endif
+	#ifdef DEBUG_PMBS_LOG
+	debugPmbsPrintStr("pmap_bootstrap() validate PTEs (nextpa-firstpa)\r\n\tepte:\t\t");
+	debugPmbsPrintInt((int)epte);
+	debugPmbsPrintStr("\r\n\tprotopte:\t");
+	debugPmbsPrintInt((int)protopte);
+	debugPmbsPrintStr("\r\n\t...\r\n");
+	#endif
+	while (pte < epte) {
+		*pte++ = protopte;
+		protopte += PAGE_SIZE;
+	}
+	#ifdef DEBUG_PMBS_LOG
+	debugPmbsPrintStr("\tpte:\t\t");
+	debugPmbsPrintInt((int)pte);
+	debugPmbsPrintStr("\r\n");
+	#endif
+
+	#define	PTE2VA(pte)	m68k_ptob(pte - ((pt_entry_t *)kptpa))
+
+	RELOC(virtual_avail, vaddr_t) = PTE2VA(pte);
+	/*
+	 * Calculate important exported kernel addresses and related values.
+	 */
+	/*
+	 * Sysseg: base of kernel segment table
+	 */
+	RELOC(Sysseg, st_entry_t *) = (st_entry_t *)(kstpa - firstpa);
+	RELOC(Sysseg_pa, paddr_t) = kstpa;
+	/*
+	 * Sysptmap: base of kernel page table map
+	 */
+	RELOC(Sysptmap, pt_entry_t *) = (pt_entry_t *)(kptmpa - firstpa);
+	/*
+	 * Sysmap: kernel page table (as mapped through Sysptmap)
+	 * Allocated at the end of KVA space.
+	 */
+	RELOC(Sysmap, pt_entry_t *) = (pt_entry_t *)SYSMAP_VA;
+	/*
+	 * Remember the u-area address so it can be loaded in the lwp0
+	 * via uvm_lwp_setuarea() later in pmap_bootstrap_finalize().
+	 */
+	RELOC(lwp0uarea, vaddr_t) = lwp0upa - firstpa;
+
+	/*
+	 * VM data structures are now initialized, set up data for
+	 * the pmap module.
+	 *
+	 * Note about avail_end: msgbuf is initialized just after
+	 * avail_end in machdep.c.
+	 * Since the last page is used for rebooting the system
+	 * (code is copied there and execution continues from copied code
+	 * before the MMU is disabled), the msgbuf will get trounced
+	 * between reboots if it's placed in the last physical page.
+	 * To work around this, we move avail_end back one more
+	 * page so the msgbuf can be preserved.
+	 */
+	RELOC(avail_start, paddr_t) = nextpa;
+	RELOC(avail_end, paddr_t) = m68k_ptob(RELOC(maxmem, int)) -
+	    (m68k_round_page(MSGBUFSIZE) + m68k_ptob(1));
+	RELOC(mem_size, vsize_t) = m68k_ptob(RELOC(physmem, int));
+
+	RELOC(virtual_end, vaddr_t) = VM_MAX_KERNEL_ADDRESS;
+
+	/*
+	 * Allocate some fixed, special purpose kernel virtual addresses
+	 */
+	{
+		vaddr_t va = RELOC(virtual_avail, vaddr_t);
+
+		RELOC(CADDR1, void *) = (void *)va;
+		va += PAGE_SIZE;
+		RELOC(CADDR2, void *) = (void *)va;
+		va += PAGE_SIZE;
+		RELOC(vmmap, void *) = (void *)va;
+		va += PAGE_SIZE;
+		RELOC(msgbufaddr, void *) = (void *)va;
+		va += m68k_round_page(MSGBUFSIZE);
+		RELOC(virtual_avail, vaddr_t) = va;
+	}
+
+
+	#ifdef DEBUG_PMBS_LOG
+	debugPmbsPrintStr("pmap_boostrap() done.\r\n\tste:\t\t");
+	debugPmbsPrintInt((int)ste);
+	debugPmbsPrintStr("\r\n\tpte:\t\t");
+	debugPmbsPrintInt((int)pte);
+	debugPmbsPrintStr("\r\n\tepte:\t\t");
+	debugPmbsPrintInt((int)epte);
+	debugPmbsPrintStr("\r\n\tprotoste:\t");
+	debugPmbsPrintInt((int)protoste);
+	debugPmbsPrintStr("\r\n\tprotopte\t");
+	debugPmbsPrintInt((int)protopte);
+	debugPmbsPrintStr("\r\n\tavail_start\t");
+	debugPmbsPrintInt((int)avail_start);
+	debugPmbsPrintStr("\r\n\tavail_end\t");
+	debugPmbsPrintInt((int)avail_end);
+	debugPmbsPrintStr("\r\n\tmem_size\t");
+	debugPmbsPrintInt((int)mem_size);
+	debugPmbsPrintStr("\r\n\tCADDR1\t\t");
+	debugPmbsPrintInt((int)CADDR1);
+	debugPmbsPrintStr("\r\n\tCADDR2\t\t");
+	debugPmbsPrintInt((int)CADDR2);
+	debugPmbsPrintStr("\r\n\tvmmap\t\t");
+	debugPmbsPrintInt((int)vmmap);
+	debugPmbsPrintStr("\r\n\tmsgbufaddr\t");
+	debugPmbsPrintInt((int)msgbufaddr);
+	debugPmbsPrintStr("\r\n\tvirtual_avail\t");
+	debugPmbsPrintInt((int)virtual_avail);
+	debugPmbsPrintStr("\r\n\tvirtual_end\t");
+	debugPmbsPrintInt((int)virtual_end);
+	/* debugPmbsPrintStr("\r\n\t\t\t"); */
+	/* I'm going to print the whole MMU table here ... */
+	debugPmbsPrintStr("\r\n*** MMU TABLE *** ");
+	/* int* rpt = RELOC(Sysseg_pa,int); */
+	int* rpt = (int*)Sysseg_pa;
+	debugPmbsPrintInt((int)rpt);
+	int* TIB;
+	for(int ia = 0; ia < 3; ia++)
+	{
+		int tae = *(rpt + (ia << 2));
+		debugPmbsPrintStr("\r\n  ");
+		debugPmbsPrintShort(ia);
+		debugPmbsPrintStr(": ");
+		debugPmbsPrintInt(tae);
+		int bShift = 2;
+		switch(tae & 0x03)
+		{
+			case 0:
+				debugPmbsPrintStr(": invalid");
+				break;
+			case 1:
+				debugPmbsPrintStr(": page descriptor");
+			case 3:
+				bShift = 3;
+			case 2:
+				/* traverse table B */
+				TIB = (int*)(tae & 0xfffffffc);
+				for(int ib = 0; ib < 1024; ib++)
+				{
+					int tbe = *(TIB + (ib << bShift));
+					if((ib & 0x03) == 0)
+					{
+						debugPmbsPrintStr("\r\n    ");
+						debugPmbsPrintShort(ib);
+						debugPmbsPrintStr(": ");
+					}
+					debugPmbsPrintInt(tbe);
+					switch(tbe & 0x03)
+					{
+						case 0:
+							debugPmbsPrintStr(": bad,   ");
+							break;
+						case 1:
+							debugPmbsPrintStr(": page,  ");
+							break;
+						case 2:
+							debugPmbsPrintStr(": short, ");
+							break;
+						case 3:
+							debugPmbsPrintStr(": long,  ");
+							break;
+					}
+				}
+		}
+	}
+	debugPmbsPrintStr("\r\n*** MMU TABLE END *** ... ");
+	#endif
+}
+
+#if 0
 /*
  * Bootstrap the VM system.
  *
@@ -680,3 +1171,4 @@ pmap_bootstrap(paddr_t nextpa, paddr_t firstpa)
 	debugPmbsPrintStr("\r\n*** MMU TABLE END *** ... ");
 	#endif
 }
+#endif

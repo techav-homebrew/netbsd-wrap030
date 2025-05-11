@@ -38,8 +38,8 @@
  *	from: @(#)param.h	8.1 (Berkeley) 6/10/93
  */
 
-#ifndef _CESFIC_INTR_H_
-#define _CESFIC_INTR_H_
+#ifndef _WRAP030_INTR_H_
+#define _WRAP030_INTR_H_
 
 /*
  * spl functions; all but spl0 are done in-line
@@ -108,4 +108,4 @@ splraiseipl(ipl_cookie_t icookie)
 
 #endif /* _KERNEL && !_LOCORE */
 
-#endif /* !_CESFIC_INTR_H_ */
+#endif /* !_WRAP030_INTR_H_ */

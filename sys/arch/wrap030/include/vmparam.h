@@ -116,7 +116,7 @@
 #define VM_MAXUSER_ADDRESS  ((vaddr_t)0x7FF00000)
 #define VM_MAX_ADDRESS 		((vaddr_t)0x7FF00000)
 #define VM_MIN_KERNEL_ADDRESS	((vaddr_t)0x00002000)
-#define VM_MAX_KERNEL_ADDRESS	((vaddr_t)(0-PAGE_SIZE*NPTEPG*2))
+#define VM_MAX_KERNEL_ADDRESS	((vaddr_t)(0x80000000-PAGE_SIZE*NPTEPG*2))
 
 /* virtual sizes (bytes) for various kernel submaps */
 #define VM_PHYS_SIZE		(USRIOSIZE*PAGE_SIZE)
@@ -125,7 +125,7 @@
 #define VM_KERNEL_PT_PAGES	((vsize_t)2)
 
 /* Use new VM page bootstrap interface. */
-#define	MACHINE_NEW_NONCONTIG
+/* #define	MACHINE_NEW_NONCONTIG */
 
 /*
  * Constants which control the way the VM system deals with memory segments.
