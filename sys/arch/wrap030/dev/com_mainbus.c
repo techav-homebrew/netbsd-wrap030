@@ -70,13 +70,17 @@ int com_mainbus_attached = 0;
 int
 com_mainbus_probe(device_t parent, cfdata_t match, void *aux)
 {
+    /* printf("com_mainbus_probe(%p,%p,%p)\r\n",
+        parent,match,aux); */
     if(com_mainbus_attached < MAXCOM)
     {
         com_mainbus_attached++;
+        /* printf("com_mainbus_probe() good. done.\r\n"); */
         return(1);
     }
     else
     {
+        /* printf("com_mainbus_probe() bad. done.\r\n"); */
         return(0);
     }
 }
@@ -86,6 +90,8 @@ com_mainbus_attach(device_t parent, device_t self, void *aux)
 {
     struct com_mainbus_softc *msc = device_private(self);
     struct com_softc *sc = &msc->sc_com;
+
+    /* printf("com_mainbus_attach(%p,%p,%p)\r\n",parent,self,aux); */
     
     bus_space_tag_t iot;
     bus_space_handle_t ioh;
@@ -95,11 +101,10 @@ com_mainbus_attach(device_t parent, device_t self, void *aux)
 
     /* fun fact for later, 'sc->sc_tty' is a pointer of type 'struct tty' */
 
-    /* base wrap030 octocom address */
-    iot = (bus_space_tag_t)0x80300000;
+    iot = (bus_space_tag_t)WRAP030_BUS_SPACE_EIO;
     
     /* each UART space is 8 consecutive addresses long */
-    iobase = device_unit(self) * 0x08;
+    iobase = 0x80300000 + device_unit(self) * 0x08;
 
     /* I only want the first unit to be the console ... I think? */
     if(device_unit(self) == 0)
@@ -109,18 +114,24 @@ com_mainbus_attach(device_t parent, device_t self, void *aux)
     }
 
     /* map the bus space consumed by this device  */
+    /* printf("com_mainbus_attach() bus_space_map(%p,%p,%u,0,%u)\r\n",
+        iot,iobase,COM_NPORTS,&ioh); */
     bus_space_map(iot, iobase, COM_NPORTS, 0, &ioh);
 
     /* com_init_regs is defined in com.c */
+    /* printf("com_mainbus_attach() com_init_regs(%p,%p,%p,%p)\r\n",
+        &sc->sc_regs, iot, ioh, iobase); */
     com_init_regs(&sc->sc_regs, iot, ioh, iobase);
 
     sc->sc_frequency = COMFREQ;
 
     /* another function from com.c; this one will initialize the device */
+    /* printf("com_mainbus_attach() com_attach_subr(%p)\r\n",sc); */
     com_attach_subr(sc);
 
     /* this is where we will establish interrupt handlers when we have them */
     /* msc->sc_ih = .... ?
      * if (msc->sc_ih == NULL) panic("failed to establish int handler");
      */
+    /* printf("com_mainbus_attach() done.\r\n"); */
 }

@@ -67,7 +67,8 @@ cpu_initclocks(void)
 {
 	/* this really shouldn't be here, but I'll run with it -- techav */
 	/* mainbus_map(0x5a000000, 0x1000, 0, (void *)&clockbase); */
-	mainbus_map(0x80f00000, 0x00010000, 0, (void *)&clockbase);
+	clockbase = (char *)0x80f00000;
+	mainbus_map((bus_space_tag_t)WRAP030_BUS_SPACE_EIO, 0x80f00000, 0, (void *)&clockbase);
 
 	/* what does this do?
 	 * ... it's defined in arch/cesfic/cesfic/sic6351.c so it's something 

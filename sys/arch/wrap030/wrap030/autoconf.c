@@ -69,6 +69,8 @@ mainbusmatch(device_t parent, cfdata_t match, void *aux)
 {
 	static bool mainbus_matched;
 
+	printf("mainbusmatch(%p,%p,%p)\r\n",parent,match,aux);
+
 	/* Allow only one instance. */
 	if (mainbus_matched)
 		return (0);
@@ -81,7 +83,7 @@ void
 mainbusattach(device_t parent, device_t self, void *aux)
 {
 
-	printf("\n");
+	printf("mainbusattach(%p,%p,%p)\r\n",parent,self,aux);
 
 #ifdef FPSP /* XXX this shouldn't be here but in a "cpu" node */
 	evcnt_attach(self, "fpuni", &evcnt_fpsp_unimp);
@@ -89,14 +91,17 @@ mainbusattach(device_t parent, device_t self, void *aux)
 #endif
 
 	/* Search for and attach children. */
+	printf("mainbusattach() config_search()\r\n");
 	config_search(self, NULL,
 	    CFARGS(.search = mainbussearch));
+	
+	printf("mainbusattach() done.\r\n");
 }
 
 int
 mainbussearch(device_t parent, cfdata_t cf, const int *ldesc, void *aux)
 {
-
+	printf("mainbussearch(%p,%p,%p,%p)\r\n",parent,cf,ldesc,aux);
 	if (config_probe(parent, cf, NULL))
 		config_attach(parent, cf, NULL, NULL, CFARGS_NONE);
 	return (0);
@@ -108,6 +113,8 @@ mainbus_map(u_long physaddr, int size, int cacheable, void ** virtaddr)
 
 	u_long pa, endpa;
 	vm_offset_t va;
+
+	printf("mainbus_map(%08x,%u,%u,%p)\r\n",physaddr,size,cacheable,virtaddr);
 
 	pa = m68k_trunc_page(physaddr);
 	endpa = m68k_round_page(physaddr + size);
@@ -132,24 +139,37 @@ mainbus_map(u_long physaddr, int size, int cacheable, void ** virtaddr)
 	}
 	TBIAS();
 
+	printf("mainbus_map() done.\r\n");
+
 	return (0);
 }
 
 void
 cpu_configure(void)
 {
+	printf("cpu_configure()\r\n");
+	#ifdef DEBUG
+	printf("cpu_configure() DEBUG enabled\r\n");
+	#endif
 
 	isrinit();
 
-	(void)splhigh();
+	printf("cpu_configure() initializing timer\r\n");
+	cpu_initclocks();
+
+	/*(void)splhigh();*/
+	(void)spl3();
 	if (config_rootfound("mainbus", NULL) == NULL)
 		panic("no mainbus found");
 
 	(void)spl0();
+
+	printf("cpu_configure() done\r\n");
 }
 
 void
 cpu_rootconf(void)
 {
+	printf("cpu_rootconf()\r\n");
 	rootconf();
 }

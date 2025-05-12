@@ -183,6 +183,8 @@ void wrap030_init(void)
 	debugPrintStr("\r\nwrap030_init()\r\n");
 	#endif
 
+	delay_divisor = 1;
+
 	/* set up early console */
 	cn_tab = &earlycons;
 	printf("wrap030_init() early console functional!\r\n");
@@ -306,6 +308,7 @@ consinit(void)
     printf("|__/|__//_/   /___,_// .___//_____//____//_____/   \r\n");
     printf("------------------- /_/ -----------------------    \r\n");
 	printf("Primary Console Initialized\r\n");
+	printf("Kernel initializing ... \r\n");
 	/*
 	physaccess((void*)virtual_avail,
 	    (void*)0x80300000, PAGE_SIZE, PG_RW|PG_CI);

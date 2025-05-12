@@ -110,8 +110,8 @@ config		netbsd root on ? type ?
 
 mainbus0	at root		# root "bus"
 
-zsc*		at mainbus0
-zstty*		at zsc? channel ?
+# zsc*		at mainbus0
+# zstty*		at zsc? channel ?
 
 com0 		at mainbus0
 com1 		at mainbus0
