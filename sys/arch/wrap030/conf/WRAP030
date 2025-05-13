@@ -124,6 +124,13 @@ com7		at mainbus0
 
 # le*		at mainbus0		# LANCE ethernet interfaces
 
+# ATA disk drivers
+wdc0		at mainbus0
+atabus* 	at wdc? channel?
+wd*			at atabus? drive?
+# atapibus*	at atabus?
+# cd*			at atapibus? drive? 
+
 # accept filters
 # pseudo-device   accf_data		# "dataready" accept filter
 # pseudo-device   accf_http		# "httpready" accept filter

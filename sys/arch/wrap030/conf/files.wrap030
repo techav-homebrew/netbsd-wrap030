@@ -31,25 +31,31 @@ file    arch/wrap030/wrap030/bus.c
 # devices
 #
 
-device zsc { channel = -1 }
-file arch/wrap030/dev/zs.c			zsc
-file dev/ic/z8530sc.c				zsc
+# device zsc { channel = -1 }
+# file arch/wrap030/dev/zs.c			zsc
+# file dev/ic/z8530sc.c				zsc
 
-attach zsc at mainbus with zsc_pcc
-file arch/wrap030/dev/zs_pcc.c		zsc_pcc needs-flag
+# attach zsc at mainbus with zsc_pcc
+# file arch/wrap030/dev/zs_pcc.c		zsc_pcc needs-flag
 
-device zstty: tty
-attach zstty at zsc
-file dev/ic/z8530tty.c				zstty needs-flag
+# device zstty: tty
+# attach zstty at zsc
+# file dev/ic/z8530tty.c				zstty needs-flag
 
 attach com at mainbus with com_mainbus
 file arch/wrap030/dev/com_mainbus.c		com_mainbus
 
+include "dev/scsipi/files.scsipi"
+include "dev/ata/files.ata"
+
+attach  wdc at mainbus with wdc_mb
+file arch/wrap030/dev/wdc_mb.c          wdc_mb
+
 # LANCE ethernet
 #device lex: arp, ether, ifnet
 #attach	lex at mainbus
-attach le at mainbus: le32
-file	arch/wrap030/dev/if_le.c		le
+# attach le at mainbus: le32
+# file	arch/wrap030/dev/if_le.c		le
 #file	arch/wrap030/dev/am79900.c		lex
 
 #
@@ -58,6 +64,7 @@ file	arch/wrap030/dev/if_le.c		le
 
 file	arch/wrap030/wrap030/autoconf.c
 file	arch/wrap030/wrap030/clock.c
+file    arch/wrap030/wrap030/disksubr.c		disk
 file	arch/wrap030/wrap030/machdep.c
 file	arch/wrap030/wrap030/isr.c
 file	arch/wrap030/wrap030/pmap_bootstrap.c

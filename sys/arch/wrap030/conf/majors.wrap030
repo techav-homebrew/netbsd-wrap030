@@ -13,7 +13,7 @@ device-major	log		char 6
 device-major	ccd		char 7   block 1	ccd
 device-major	ipl		char 8			ipfilter
 device-major	vnd		char 9   block 2	vnd
-device-major	zstty		char 10			zstty
+device-major	ttyC		char 10			ttyC
 device-major	filedesc	char 11
 device-major	bpf		char 12			bpfilter
 device-major	tun		char 13			tun
@@ -21,9 +21,11 @@ device-major	tun		char 13			tun
 device-major	md		char 15  block 3	md
 device-major	raid		char 16  block 5	raid
 device-major	sd		char 17  block 6	sd
+device-major	wd		char 18	 block 7	wd
+device-major 	cd 		char 19	 block 8	cd
 
 # adding 16550 drivers
-device-major    com             char 18                 com
+device-major    com             char 20                 com
 
 device-major	rnd		char 21			rnd
 device-major	clockctl	char 22			clockctl
