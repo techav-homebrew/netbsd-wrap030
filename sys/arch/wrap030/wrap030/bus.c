@@ -51,19 +51,15 @@ int
 bus_space_map(bus_space_tag_t t, bus_addr_t bpa, bus_size_t size, int flags,
     bus_space_handle_t *bshp)
 {
-
-	if (t == WRAP030_BUS_SPACE_INTIO) {
-		/*
-		 * Intio space is direct-mapped in pmap_bootstrap(); just
-		 * do the translation.
-		 */
-		*bshp = (bus_space_handle_t)bpa;
-		return 0;
-	}
-
-	if (t == WRAP030_BUS_SPACE_EIO) {
-		*bshp = (bus_space_handle_t)bpa; /* XXX use tt0 mapping */
-		return 0;
+	switch(t)
+	{
+		case WRAP030_BUS_SPACE_INTIO:
+		case WRAP030_BUS_SPACE_EIO:
+		case WRAP030_BUS_SPACE_ATA:
+			*bshp = (bus_space_handle_t)bpa;
+			return 0;
+		default:
+			return 1;
 	}
 
 	return 1;
@@ -96,17 +92,15 @@ bus_space_free(bus_space_tag_t t, bus_space_handle_t bsh, bus_size_t size)
 void
 bus_space_unmap(bus_space_tag_t t, bus_space_handle_t bsh, bus_size_t size)
 {
-
-	if (t == WRAP030_BUS_SPACE_INTIO) {
-		/*
-		 * Intio space is direct-mapped in pmap_bootstrap(); nothing
-		 * to do
-		 */
-		return;
+	switch(t)
+	{
+		case WRAP030_BUS_SPACE_INTIO:
+		case WRAP030_BUS_SPACE_EIO:
+		case WRAP030_BUS_SPACE_ATA:
+			return;
+		default:
+			panic("bus_space_map: bad space tag");
 	}
-
-	if (t != WRAP030_BUS_SPACE_EIO)
-		panic("bus_space_map: bad space tag");
 
 	return;
 }

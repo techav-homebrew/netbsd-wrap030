@@ -87,7 +87,7 @@ wdc_mb_match(device_t parent, cfdata_t match, void *aux)
 	struct wdc_regs wdr;
 	int result = 0, i;
 
-	wdr.cmd_iot = wdr.ctl_iot = WRAP030_BUS_SPACE_EIO;
+	wdr.cmd_iot = wdr.ctl_iot = WRAP030_BUS_SPACE_ATA;
 
 	/* get bus space handle for I/O address
 	 * (on wrap030, this just copies the second parameter
@@ -145,7 +145,7 @@ wdc_mb_attach(device_t parent, device_t self, void *aux)
 	sc->sc_wdcdev.sc_atac.atac_dev = self;
 	sc->sc_wdcdev.regs = wdr = &sc->sc_wdc_regs;
 
-	wdr->cmd_iot = wdr->ctl_iot = WRAP030_BUS_SPACE_EIO;
+	wdr->cmd_iot = wdr->ctl_iot = WRAP030_BUS_SPACE_ATA;
 
 	/* map the entire io space */
 	if(bus_space_map(wdr->cmd_iot, WRAP030_WD_BASE,

@@ -66,6 +66,7 @@
  */
 #define	WRAP030_BUS_SPACE_INTIO	0	/* space is intio space */
 #define	WRAP030_BUS_SPACE_EIO	1	/* space is eio space */
+#define WRAP030_BUS_SPACE_ATA	2	/* for endian-swapping */
 
 /*
  * Bus address and size types
@@ -165,13 +166,19 @@ int	wrap030_bus_space_probe(bus_space_tag_t t,
  */
 
 #define	bus_space_read_1(t, h, o)					\
-    ((void) t, (*(volatile uint8_t *)((h) + (o))))
+	((void) t, (*(volatile uint8_t *)((h) + (o))))
 
-#define	bus_space_read_2(t, h, o)					\
-    ((void) t, (*(volatile uint16_t *)((h) + (o))))
+#define	_bsr2(t, h, o)							\
+	((void) t, (*(volatile uint16_t *)((h) + (o))))
 
-#define	bus_space_read_4(t, h, o)					\
+#define bus_space_read_2(t, h, o) 					\
+	((void) t, ((t==WRAP030_BUS_SPACE_ATA)?bswap16(_bsr2(t,h,o)):_bsr2(t,h,o)))
+
+#define _bsr4(t, h, o)							\
     ((void) t, (*(volatile uint32_t *)((h) + (o))))
+
+#define	bus_space_read_4(t, h, o) 					\
+	((void) t, ((t==WRAP030_BUS_SPACE_ATA)?bswap32(_bsr4(t,h,o)):_bsr4(t,h,o)))
 
 /*
  *	void bus_space_read_multi_N(bus_space_tag_t tag,
@@ -196,7 +203,7 @@ int	wrap030_bus_space_probe(bus_space_tag_t t,
 		    "%a0","%a1","%d0");					\
 } while (0)
 
-#define	bus_space_read_multi_2(t, h, o, a, c) do {			\
+#define	_bsrm2(t, h, o, a, c) do {					\
 	(void) t;							\
 	__asm volatile ("						\
 		movl	%0,%%a0					;	\
@@ -210,7 +217,29 @@ int	wrap030_bus_space_probe(bus_space_tag_t t,
 		    "%a0","%a1","%d0");					\
 } while (0)
 
-#define	bus_space_read_multi_4(t, h, o, a, c) do {			\
+#define _bsrm2_swap(t, h, o, a, c) do {					\
+	(void) t;							\
+	__asm volatile (						\
+	"	movl	%0,%%a0		;"				\
+	"	movl	%1,%%a1		;"				\
+	"	movl	%2,%%d0		;"				\
+	"1:	movw	%%a0@,%%d1	;"				\
+	"	rolw	#8,%%d1		;"				\
+	"	movw	%%d1,%%a1@+	;"				\
+	"	subql	#1,%%d0		;"				\
+	"	jne	1b"					:	\
+								:	\
+		    "r" (h + o), "g" (a), "g" (c)	:	\
+		    "a0","a1","d0","d1");				\
+} while (0)
+
+#define bus_space_read_multi_2(t, h, o, a, c) do {			\
+	(void) t;							\
+	if(t==WRAP030_BUS_SPACE_ATA) _bsrm2_swap(t,h,o,a,c);		\
+	else _bsrm2(t,h,o,a,c);						\
+} while(0)
+
+#define	_bsrm4(t, h, o, a, c) do {			\
 	(void) t;							\
 	__asm volatile ("						\
 		movl	%0,%%a0					;	\
@@ -223,6 +252,30 @@ int	wrap030_bus_space_probe(bus_space_tag_t t,
 		    "r" ((h) + (o)), "g" (a), "g" (c)		:	\
 		    "%a0","%a1","%d0");					\
 } while (0)
+
+#define _bsrm4_swap(t, h, o, a, c) do {					\
+	(void) t;							\
+	__asm volatile (						\
+	"	movl	%0,%%a0		;"				\
+	"	movl	%1,%%a1		;"				\
+	"	movl	%2,%%d0		;"				\
+	"1:	movl	%%a0@,%%d1	;"				\
+	"	rolw	#8,%%d1		;"				\
+	"	swap	%%d1		;"				\
+	"	rolw	#8,%%d1		;"				\
+	"	movl	%%d1,%%a1@+	;"				\
+	"	subql	#1,%%d0		;"				\
+	"	jne	1b"					:	\
+								:	\
+		    "r" (h + o), "g" (a), "g" (c)	:	\
+		    "a0","a1","d0","d1");				\
+} while(0)
+
+#define	bus_space_read_multi_4(t, h, o, a, c) do {			\
+	(void) t;							\
+	if(t==WRAP030_BUS_SPACE_ATA) _bsrm4_swap(t,h,o,a,c);		\
+	else _bsrm4(t,h,o,a,c);						\
+} while(0)
 
 /*
  *	void bus_space_read_region_N(bus_space_tag_t tag,
@@ -248,7 +301,7 @@ int	wrap030_bus_space_probe(bus_space_tag_t t,
 		    "%a0","%a1","%d0");					\
 } while (0)
 
-#define	bus_space_read_region_2(t, h, o, a, c) do {			\
+#define	_bsrr2(t, h, o, a, c) do {					\
 	(void) t;							\
 	__asm volatile ("						\
 		movl	%0,%%a0					;	\
@@ -262,7 +315,28 @@ int	wrap030_bus_space_probe(bus_space_tag_t t,
 		    "%a0","%a1","%d0");					\
 } while (0)
 
-#define	bus_space_read_region_4(t, h, o, a, c) do {			\
+#define _bsrr2_swap(t, h, o, a, c) do {					\
+	__asm volatile (						\
+	"	movl	%0,%%a0		;"				\
+	"	movl	%1,%%a1		;"				\
+	"	movl	%2,%%d0		;"				\
+	"1:	movw	%%a0@+,%%d1	;"				\
+	"	rolw	#8,%%d1		;"				\
+	"	movw	%%d1,%%a1@+	;"				\
+	"	subql	#1,%%d0		;"				\
+	"	jne	1b"					:	\
+								:	\
+		    "r" (h + o), "g" (a), "g" (c)	:	\
+		    "a0","a1","d0","d1");				\
+} while(0)
+
+#define	bus_space_read_region_2(t, h, o, a, c) do {			\
+	(void) t;							\
+	if (t==WRAP030_BUS_SPACE_ATA) _bsrr2_swap(t,h,o,a,c);		\
+	else _bsrr2(t,h,o,a,c);						\
+} while(0)
+
+#define	_bsrr4(t, h, o, a, c) do {					\
 	(void) t;							\
 	__asm volatile ("						\
 		movl	%0,%%a0					;	\
@@ -276,6 +350,30 @@ int	wrap030_bus_space_probe(bus_space_tag_t t,
 		    "%a0","%a1","%d0");					\
 } while (0)
 
+#define	_bsrr4_swap(t, h, o, a, c) do {					\
+	__asm volatile (						\
+	"	movl	%0,%%a0		;"				\
+	"	movl	%1,%%a1		;"				\
+	"	movl	%2,%%d0		;"				\
+	"1:	movl	%%a0@+,%%d1	;"				\
+	"	rolw	#8,%%d1		;"				\
+	"	swap	%%d1		;"				\
+	"	rolw	#8,%%d1		;"				\
+	"	movl	%%d1,%%a1@+	;"				\
+	"	subql	#1,%%d0		;"				\
+	"	jne	1b"					:	\
+								:	\
+		    "r" (h + o), "g" (a), "g" (c)	:	\
+		    "a0","a1","d0");					\
+} while(0)
+
+#define	bus_space_read_region_4(t, h, o, a, c) do {			\
+	(void) t;							\
+	if (t==WRAP030_BUS_SPACE_ATA) _bsrr4_swap(t,h,o,a,c);		\
+	else _bsrr4(t,h,o,a,c);						\
+} while(0)
+
+
 /*
  *	void bus_space_write_N(bus_space_tag_t tag,
  *	    bus_space_handle_t bsh, bus_size_t offset,
@@ -286,13 +384,31 @@ int	wrap030_bus_space_probe(bus_space_tag_t t,
  */
 
 #define	bus_space_write_1(t, h, o, v)					\
-    ((void) t, ((void)(*(volatile uint8_t *)((h) + (o)) = (v))))
+	((void) t, ((void)(*(volatile uint8_t *)((h) + (o)) = (v))))
 
-#define	bus_space_write_2(t, h, o, v)					\
-    ((void) t, ((void)(*(volatile uint16_t *)((h) + (o)) = (v))))
+#define	_bsw2(t, h, o, v)						\
+	((void) t, ((void)(*(volatile uint16_t *)((h) + (o)) = (v))))
 
-#define	bus_space_write_4(t, h, o, v)					\
-    ((void) t, ((void)(*(volatile uint32_t *)((h) + (o)) = (v))))
+#define _bsw2_swap(t, h, o, v)						\
+	((void) t, ((void)(*(volatile uint16_t *)((h) + (o)) = bswap16(v))))
+
+#define	bus_space_write_2(t, h, o, v) do {				\
+	(void) t;							\
+	if(t==WRAP030_BUS_SPACE_ATA) _bsw2_swap(t,h,o,v); 		\
+	else _bsw2(t,h,o,v);						\
+} while(0)
+
+#define	_bsw4(t, h, o, v)						\
+	((void) t, ((void)(*(volatile uint32_t *)((h) + (o)) = (v))))
+
+#define	_bsw4_swap(t, h, o, v)						\
+	((void) t, ((void)(*(volatile uint32_t *)((h) + (o)) = bswap32(v))))
+
+#define	bus_space_write_4(t, h, o, v) do {				\
+	(void) t;							\
+	if (t==WRAP030_BUS_SPACE_ATA) _bsw4_swap(t,h,o,v); 		\
+	else _bsw4(t,h,o,v);						\
+} while(0)
 
 /*
  *	void bus_space_write_multi_N(bus_space_tag_t tag,
@@ -317,7 +433,7 @@ int	wrap030_bus_space_probe(bus_space_tag_t t,
 		    "%a0","%a1","%d0");					\
 } while (0)
 
-#define	bus_space_write_multi_2(t, h, o, a, c) do {			\
+#define	_bswm2(t, h, o, a, c) do {					\
 	(void) t;							\
 	__asm volatile ("						\
 		movl	%0,%%a0					;	\
@@ -331,7 +447,28 @@ int	wrap030_bus_space_probe(bus_space_tag_t t,
 		    "%a0","%a1","%d0");					\
 } while (0)
 
-#define	bus_space_write_multi_4(t, h, o, a, c) do {			\
+#define _bswm2_swap(t, h, o, a, c) do {					\
+	__asm volatile (						\
+	"	movl	%0,%%a0		;"				\
+	"	movl	%1,%%a1		;"				\
+	"	movl	%2,%%d0		;"				\
+	"1:	movw	%%a1@+,%%d1	;"				\
+	"	rolw	#8,%%d1		;"				\
+	"	movw	%%d1,%%a0@	;"				\
+	"	subql	#1,%%d0		;"				\
+	"	jne	1b"					:	\
+								:	\
+		    "r" (h + o), "g" (a), "g" (c)	:	\
+		    "a0","a1","d0","d1");				\
+} while(0)
+
+#define	bus_space_write_multi_2(t, h, o, a, c) do {			\
+	(void) t;							\
+	if(t==WRAP030_BUS_SPACE_ATA) _bswm2_swap(t,h,o,a,c); 		\
+	else _bswm2(t,h,o,a,c);						\
+} while(0)
+
+#define	_bswm4(t, h, o, a, c) do {					\
 	(void) t;							\
 	__asm volatile ("						\
 		movl	%0,%%a0					;	\
@@ -344,6 +481,29 @@ int	wrap030_bus_space_probe(bus_space_tag_t t,
 		    "r" ((h) + (o)), "g" (a), "g" (c)		:	\
 		    "%a0","%a1","%d0");					\
 } while (0)
+
+#define _bswm4_swap(t, h, o, a, c) do {					\
+	__asm volatile (						\
+	"	movl	%0,%%a0		;"				\
+	"	movl	%1,%%a1		;"				\
+	"	movl	%2,%%d0		;"				\
+	"1:	movl	%%a1@+,%%d1	;"				\
+	"	rolw	#8,%%d1		;"				\
+	"	swap	%%d1		;"				\
+	"	rolw	#8,%%d1		;"				\
+	"	movl	%%d1,%%a0@	;"				\
+	"	subql	#1,%%d0		;"				\
+	"	jne	1b"					:	\
+								:	\
+		    "r" (h + o), "g" (a), "g" (c)	:	\
+		    "a0","a1","d0","d1");				\
+} while(0)
+
+#define	bus_space_write_multi_4(t, h, o, a, c) do {			\
+	(void) t;							\
+	if(t==WRAP030_BUS_SPACE_ATA) _bswm4_swap(t,h,o,a,c); 		\
+	else _bswm4(t,h,o,a,c);						\
+} while(0)
 
 /*
  *	void bus_space_write_region_N(bus_space_tag_t tag,
@@ -368,7 +528,7 @@ int	wrap030_bus_space_probe(bus_space_tag_t t,
 		    "%a0","%a1","%d0");					\
 } while (0)
 
-#define	bus_space_write_region_2(t, h, o, a, c) do {			\
+#define	_bswr2(t, h, o, a, c) do {					\
 	(void) t;							\
 	__asm volatile ("						\
 		movl	%0,%%a0					;	\
@@ -382,7 +542,29 @@ int	wrap030_bus_space_probe(bus_space_tag_t t,
 		    "%a0","%a1","%d0");					\
 } while (0)
 
-#define	bus_space_write_region_4(t, h, o, a, c) do {			\
+#define _bswr2_swap(t, h, o, a, c) do {					\
+	__asm volatile (						\
+	"	movl	%0,%%a0		;"				\
+	"	movl	%1,%%a1		;"				\
+	"	movl	%2,%%d0		;"				\
+	"1:	movw	%%a1@+,%%d1	;"				\
+	"	rolw	#8,%%d1		;"				\
+	"	movw	%%d1,%%a0@+	;"				\
+	"	subql	#1,%%d0		;"				\
+	"	jne	1b"					:	\
+								:	\
+		    "r" (h + o), "g" (a), "g" (c)	:	\
+		    "a0","a1","d0","d1");				\
+} while(0)
+
+
+#define	bus_space_write_region_2(t, h, o, a, c) do {			\
+	(void) t;							\
+	if(t==WRAP030_BUS_SPACE_ATA) _bswr2_swap(t,h,o,a,c); 		\
+	else _bswr2(t,h,o,a,c);						\
+} while(0)
+
+#define	_bswr4(t, h, o, a, c) do {					\
 	(void) t;							\
 	__asm volatile ("						\
 		movl	%0,%%a0					;	\
@@ -395,6 +577,29 @@ int	wrap030_bus_space_probe(bus_space_tag_t t,
 		    "r" ((h) + (o)), "g" (a), "g" (c)		:	\
 		    "%a0","%a1","%d0");					\
 } while (0)
+
+#define _bswr4_swap(t, h, o, a, c) do {					\
+	__asm volatile (						\
+	"	movl	%0,%%a0		;"				\
+	"	movl	%1,%%a1		;"				\
+	"	movl	%2,%%d0		;"				\
+	"1:	movl	%%a1@+,%%d1	;"				\
+	"	rolw	#8,%%d1		;"				\
+	"	swap	%%d1		;"				\
+	"	rolw	#8,%%d1		;"				\
+	"	movl	%%d1,%%a0@+	;"				\
+	"	subql	#1,%%d0		;"				\
+	"	jne	1b"					:	\
+								:	\
+		    "r" (h + o), "g" (a), "g" (c)	:	\
+		    "a0","a1","d0","d1");				\
+}
+
+#define	bus_space_write_region_4(t, h, o, a, c) do {			\
+	(void) t;							\
+	if(t==WRAP030_BUS_SPACE_ATA) _bswr4_swap(t,h,o,a,c); 		\
+	else _bswr4(t,h,o,a,c);						\
+} while(0)
 
 /*
  *	void bus_space_set_multi_N(bus_space_tag_t tag,
@@ -419,7 +624,7 @@ int	wrap030_bus_space_probe(bus_space_tag_t t,
 		    "%a0","%d0","%d1");					\
 } while (0)
 
-#define	bus_space_set_multi_2(t, h, o, val, c) do {			\
+#define	_bssm2(t, h, o, val, c) do {					\
 	(void) t;							\
 	__asm volatile ("						\
 		movl	%0,%%a0					;	\
@@ -433,7 +638,27 @@ int	wrap030_bus_space_probe(bus_space_tag_t t,
 		    "%a0","%d0","%d1");					\
 } while (0)
 
-#define	bus_space_set_multi_4(t, h, o, val, c) do {			\
+#define _bssm2_swap(t, h, o, val, c) do {				\
+	__asm volatile (						\
+	"	movl	%0,%%a0		;"				\
+	"	movl	%1,%%d1		;"				\
+	"	rolw	#8,%%d1		;"				\
+	"	movl	%2,%%d0		;"				\
+	"1:	movw	%%d1,%%a0@	;"				\
+	"	subql	#1,%%d0		;"				\
+	"	jne	1b"						: \
+									: \
+		    "r" (h + o), "g" ((u_long)v), "g" (c)	: 	\
+		    "a0","d0","d1");					\
+} while(0)
+
+#define	bus_space_set_multi_2(t, h, o, val, c) do {			\
+	(void) t;							\
+	if (t==WRAP030_BUS_SPACE_ATA) _bssm2_swap(t,h,o,val,c); 	\
+	else _bssm2(t,h,o,val,c);					\
+} while(0)
+
+#define	_bssm4(t, h, o, val, c) do {					\
 	(void) t;							\
 	__asm volatile ("						\
 		movl	%0,%%a0					;	\
@@ -446,6 +671,28 @@ int	wrap030_bus_space_probe(bus_space_tag_t t,
 		    "r" ((h) + (o)), "g" (val), "g" (c)		:	\
 		    "%a0","%d0","%d1");					\
 } while (0)
+
+#define _bssm4_swap(t, h, o, val, c) do {				\
+	__asm volatile (						\
+	"	movl	%0,%%a0		;"				\
+	"	movl	%1,%%d1		;"				\
+	"	rolw	#8,%%d1		;"				\
+	"	swap	%%d1		;"				\
+	"	rolw	#8,%%d1		;"				\
+	"	movl	%2,%%d0		;"				\
+	"1:	movl	%%d1,%%a0@	;"				\
+	"	subql	#1,%%d0		;"				\
+	"	jne	1b"						: \
+									: \
+		    "r" (h + o), "g" ((u_long)v), "g" (c)	: \
+		    "a0","d0","d1");					\
+} while(0)
+
+#define	bus_space_set_multi_4(t, h, o, val, c) do {			\
+	(void) t;							\
+	if(t==WRAP030_BUS_SPACE_ATA) _bssm4_swap(t,h,o,val,c); 		\
+	else _bssm4(t,h,o,val,c);					\
+} while(0)
 
 /*
  *	void bus_space_set_region_N(bus_space_tag_t tag,
@@ -470,7 +717,7 @@ int	wrap030_bus_space_probe(bus_space_tag_t t,
 		    "%a0","%d0","%d1");					\
 } while (0)
 
-#define	bus_space_set_region_2(t, h, o, val, c) do {			\
+#define	_bssr2(t, h, o, val, c) do {					\
 	(void) t;							\
 	__asm volatile ("						\
 		movl	%0,%%a0					;	\
@@ -484,7 +731,27 @@ int	wrap030_bus_space_probe(bus_space_tag_t t,
 		    "%a0","%d0","%d1");					\
 } while (0)
 
-#define	bus_space_set_region_4(t, h, o, val, c) do {			\
+#define _bssr2_swap(t, h, o, val, c) do {				\
+	__asm volatile (						\
+	"	movl	%0,%%a0		;"				\
+	"	movl	%1,%%d1		;"				\
+	"	rolw	#8,%%d1		;"				\
+	"	movl	%2,%%d0		;"				\
+	"1:	movw	%%d1,%%a0@+	;"				\
+	"	subql	#1,%%d0		;"				\
+	"	jne	1b"						: \
+									: \
+		    "r" (h + o), "g" ((u_long)v), "g" (c)	: \
+		    "a0","d0","d1");					\
+} while(0)
+
+#define	bus_space_set_region_2(t, h, o, val, c) do {			\
+	(void) t;							\
+	if(t==WRAP030_BUS_SPACE_ATA) _bssr2_swap(t,h,o,val,c); 		\
+	else _bssr2(t,h,o,val,c);					\
+} while(0)
+
+#define	_bssr4(t, h, o, val, c) do {					\
 	(void) t;							\
 	__asm volatile ("						\
 		movl	%0,%%a0					;	\
@@ -497,6 +764,28 @@ int	wrap030_bus_space_probe(bus_space_tag_t t,
 		    "r" ((h) + (o)), "g" (val), "g" (c)		:	\
 		    "%a0","%d0","%d1");					\
 } while (0)
+
+#define _bssr4_swap(t, h, o, val, c) do {				\
+	__asm volatile (						\
+	"	movl	%0,%%a0		;"				\
+	"	movl	%1,%%d1		;"				\
+	"	rolw	#8,%%d1		;"				\
+	"	swap	%%d1		;"				\
+	"	rolw	#8,%%d1		;"				\
+	"	movl	%2,%%d0		;"				\
+	"1:	movl	%%d1,%%a0@+	;"				\
+	"	subql	#1,%%d0		;"				\
+	"	jne	1b"						: \
+									: \
+		    "r" (h + o), "g" ((u_long)v), "g" (c)	: \
+		    "a0","d0","d1");					\
+} while(0)
+
+#define	bus_space_set_region_4(t, h, o, val, c) do {			\
+	(void) t;							\
+	if(t==WRAP030_BUS_SPACE_ATA) _bssr4_swap(t,h,o,val,c); 		\
+	else _bssr4(t,h,o,val,c);					\
+} while(0)
 
 /*
  *	void bus_space_copy_region_N(bus_space_tag_t tag,
