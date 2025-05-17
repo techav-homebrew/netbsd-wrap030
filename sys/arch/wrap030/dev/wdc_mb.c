@@ -47,19 +47,25 @@ __KERNEL_RCSID(0, "$NetBSD: wdc_mb.c,v 1.41 2019/06/29 16:41:19 tsutsui Exp $");
 
 #include <machine/bus.h>
 
+#include <machine/endian.h>
+#include <machine/endian_machdep.h>
+
 #include <m68k/asm_single.h>
 
 #include <dev/ata/atavar.h>
 #include <dev/ic/wdcvar.h>
 
 /* Wrap030 IDE register locations (base and offsets). */
-#define WRAP030_WD_BASE			0x80200000
-#define WRAP030_WD_CMD			(WRAP030_WD_BASE + 0)
+#define WRAP030_WD_BASE		0x80200000
+#define WRAP030_WD_CMD		(WRAP030_WD_BASE + 0)
 #define WRAP030_WD_CTL_OFFSET	0x00002000
-#define WRAP030_WD_CTL			(WRAP030_WD_BASE + WRAP030_WD_CTL_OFFSET)
-#define WRAP030_WD_LEN			0x10
+#define WRAP030_WD_CTL		(WRAP030_WD_BASE + WRAP030_WD_CTL_OFFSET)
+#define WRAP030_WD_LEN		0x10
 #define WRAP030_WD_REG_STRIDE 	2
-#define MAXDISK 				2
+#define MAXDISK 		2
+
+/* #define WRAP030_WD_BUS_TAG	WRAP030_BUS_SPACE_ATA */
+#define WRAP030_WD_BUS_TAG	WRAP030_BUS_SPACE_EIO
 
 /*
  * XXX This code currently doesn't even try to allow 32-bit data port use.
@@ -87,7 +93,7 @@ wdc_mb_match(device_t parent, cfdata_t match, void *aux)
 	struct wdc_regs wdr;
 	int result = 0, i;
 
-	wdr.cmd_iot = wdr.ctl_iot = WRAP030_BUS_SPACE_ATA;
+	wdr.cmd_iot = wdr.ctl_iot = WRAP030_WD_BUS_TAG;
 
 	/* get bus space handle for I/O address
 	 * (on wrap030, this just copies the second parameter
@@ -145,7 +151,7 @@ wdc_mb_attach(device_t parent, device_t self, void *aux)
 	sc->sc_wdcdev.sc_atac.atac_dev = self;
 	sc->sc_wdcdev.regs = wdr = &sc->sc_wdc_regs;
 
-	wdr->cmd_iot = wdr->ctl_iot = WRAP030_BUS_SPACE_ATA;
+	wdr->cmd_iot = wdr->ctl_iot = WRAP030_WD_BUS_TAG;
 
 	/* map the entire io space */
 	if(bus_space_map(wdr->cmd_iot, WRAP030_WD_BASE,

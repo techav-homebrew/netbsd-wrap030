@@ -58,20 +58,22 @@ file-system 	FFS		# fast filesystem
 #file-system 	CD9660		# CD-ROM ISO-9660 filesystem
 #file-system 	NFS		# Network filesystem client
 #file-system 	UNION		# Union filesystem (req. for FDESC)
-#file-system 	KERNFS		# kernel data-structure filesystem
-#file-system 	FDESC		# user file descriptor filesystem
-#file-system 	PROCFS		# /proc filesystem
-#file-system 	MFS		# Memory-based filesystem
+file-system 	KERNFS		# kernel data-structure filesystem
+file-system 	FDESC		# user file descriptor filesystem
+file-system 	PROCFS		# /proc filesystem
+file-system 	MFS		# Memory-based filesystem
 file-system	PTYFS		# /dev/pts/N support
 #file-system	TMPFS		# Efficient memory file-system
 #file-system	UDF		# experimental - OSTA UDF CD/DVD file-system
 file-system 	MSDOSFS		# FAT support
+#file-system 	NULLFS 		# loopback file system
 
 # File system options
-#options 	QUOTA		# legacy UFS quotas
-#options 	QUOTA2		# new, in-filesystem UFS quotas
-#options 	UFS_DIRHASH	# UFS Large Directory Hashing
-#options 	UFS_EXTATTR	# Extended attribute support for UFS1
+# options 	FFS_EI		# FFS Endian Independent support
+options 	QUOTA		# legacy UFS quotas
+options 	QUOTA2		# new, in-filesystem UFS quotas
+options 	UFS_DIRHASH	# UFS Large Directory Hashing
+options 	UFS_EXTATTR	# Extended attribute support for UFS1
 #options 	NFSSERVER	# Network File System server
 
 # Networking options
@@ -103,6 +105,8 @@ options 	DEBUG		# Enable misc. kernel debugging code
 options 	DDB		# Kernel Dynamic Debugger
 # options 	KGDB	# don't enable this, compile fails at trap.c
 makeoptions	DEBUG="-g"	# netbsd.gdb with full debugging symbols
+options 	ATADEBUG
+options 	ATADEBUG_MASK=0xffff
 
 #options 	NFS_BOOT_DHCP
 
@@ -143,7 +147,7 @@ pseudo-device	ppp			# PPP network interfaces
 pseudo-device	carp			# Common Address Redundancy Protocol
 #pseudo-device	bridge			# simple inter-network bridging
 #pseudo-device	vether			# Virtual Ethernet for bridge
-#pseudo-device	vnd			# vnode pseudo-disks
+pseudo-device	vnd			# vnode pseudo-disks
 #options 	VND_COMPRESSION		# compressed vnd(4)
 #pseudo-device	ccd			# concatenated disk devices
 #pseudo-device	cgd			# cryptographic disk devices
