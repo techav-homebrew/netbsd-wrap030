@@ -36,7 +36,7 @@
 #define LABELUSESMBR	1			/* MBR partitionning */
 #define	LABELSECTOR	64			/* sector containing label */
 #define	LABELOFFSET	0			/* offset of label in sector */
-#define	MAXPARTITIONS	8			/* number of partitions */
+#define	MAXPARTITIONS	16			/* number of partitions */
 #define	RAW_PART	0			/* raw partition: xx?c */
 
 /* Pull in MBR partition definitions. */

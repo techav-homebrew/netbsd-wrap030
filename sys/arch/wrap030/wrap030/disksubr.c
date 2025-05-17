@@ -161,15 +161,24 @@ readdisklabel(dev_t dev, void (*strat)(struct buf *), struct disklabel *lp,
 			{
 				msg = "no disk label";
 			}
-			else if(dlp->d_npartitions > MAXPARTITIONS || dkcksum(dlp) != 0)
-			{
-				msg = "disk label corrupted";
-			}
-			else
-			{
-				*lp = *dlp;
-				msg = NULL;
-			}
+		}
+		/* else if(dkcksum(dlp) != 0)
+		{
+			printf("readdisklabel() bad checksum\r\n");
+			msg = "disk label corrupt; bad checksum";
+		} */
+		else if(dlp->d_npartitions > MAXPARTITIONS)
+		{
+			printf("readdisklabel() dlp->d_npartitions: %u > MAXPARTITIONS: %u\r\n",
+				dlp->d_npartitions, MAXPARTITIONS
+			);
+			msg = "disk label corrupt; too many partitions";
+		}
+		else
+		{
+			printf("readdisklabel() found magic; disk label looks ok.\r\n");
+			*lp = *dlp;
+			msg = NULL;
 		}
 
 		/* 
