@@ -58,7 +58,8 @@
  * have the user's stack hard-wired at FFF00000 for post-mortems,
  * and we must be compatible...
  */
-#define	USRSTACK	(-HIGHPAGES*PAGE_SIZE)	/* Start of user stack */
+/* #define	USRSTACK	(-HIGHPAGES*PAGE_SIZE) */	/* Start of user stack */
+#define USRSTACK	VM_MAXUSER_ADDRESS
 #define	BTOPUSRSTACK	(0x100000-HIGHPAGES)	/* btop(USRSTACK) */
 #define P1PAGES		0x100000
 #define HIGHPAGES	(0x100000/PAGE_SIZE)

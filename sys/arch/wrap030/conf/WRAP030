@@ -102,11 +102,12 @@ options 	COMPAT_AOUT_M68K # support for NetBSD a.out executables
 # Debugging options
 options 	DIAGNOSTIC	# Extra kernel sanity checks
 options 	DEBUG		# Enable misc. kernel debugging code
+options		DEBUGPRINT
 options 	DDB		# Kernel Dynamic Debugger
 # options 	KGDB	# don't enable this, compile fails at trap.c
 makeoptions	DEBUG="-g"	# netbsd.gdb with full debugging symbols
-options 	ATADEBUG
-options 	ATADEBUG_MASK=0xffff
+#options 	ATADEBUG
+#options 	ATADEBUG_MASK=0xffff
 
 #options 	NFS_BOOT_DHCP
 
