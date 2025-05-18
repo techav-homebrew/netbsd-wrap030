@@ -298,7 +298,7 @@ consinit(void)
 	    (bus_addr_t)0x00300000, 9600, COMFREQ, COM_TYPE_NORMAL, (CREAD | CS8));*/
 	
 	comcnattach((bus_space_tag_t)WRAP030_BUS_SPACE_EIO,
-		(bus_addr_t)0x80300000, 9600, COMFREQ, COM_TYPE_NORMAL, (CREAD | CS8));
+		(bus_addr_t)0x80300000, 115200, COMFREQ, COM_TYPE_NORMAL, (CREAD | CS8));
 
 	printf("\r\n");
     printf("                                ______ _____ ______\r\n");
