@@ -34,10 +34,11 @@
 #define _MACHINE_DISKLABEL_H_
 
 #define LABELUSESMBR	1			/* MBR partitionning */
-#define	LABELSECTOR	64			/* sector containing label */
+/* #define	LABELSECTOR	64 */			/* sector containing label */
+#define	LABELSECTOR	1
 #define	LABELOFFSET	0			/* offset of label in sector */
 #define	MAXPARTITIONS	16			/* number of partitions */
-#define	RAW_PART	0			/* raw partition: xx?c */
+#define	RAW_PART	2			/* raw partition: xx?c */
 
 /* Pull in MBR partition definitions. */
 #if HAVE_NBTOOL_CONFIG_H

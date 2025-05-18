@@ -64,7 +64,8 @@ file arch/wrap030/dev/wdc_mb.c          wdc_mb
 
 file	arch/wrap030/wrap030/autoconf.c
 file	arch/wrap030/wrap030/clock.c
-file    arch/wrap030/wrap030/disksubr.c		disk
+# file    arch/wrap030/wrap030/disksubr.c		disk
+file    kern/subr_disk_mbr.c                    disk
 file	arch/wrap030/wrap030/machdep.c
 file	arch/wrap030/wrap030/isr.c
 file	arch/wrap030/wrap030/pmap_bootstrap.c

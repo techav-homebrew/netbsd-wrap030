@@ -32,7 +32,9 @@ maxusers	8
 #options 	LEDEBUG
 
 options 	M68030
-#options 	FPSP
+no options 	M68040
+no options 	FPSP
+no options	FPU_EMULATE
 
 # Standard system options
 options 	USERCONF	# userconf(4) support
@@ -58,23 +60,25 @@ file-system 	FFS		# fast filesystem
 #file-system 	CD9660		# CD-ROM ISO-9660 filesystem
 #file-system 	NFS		# Network filesystem client
 #file-system 	UNION		# Union filesystem (req. for FDESC)
-file-system 	KERNFS		# kernel data-structure filesystem
-file-system 	FDESC		# user file descriptor filesystem
-file-system 	PROCFS		# /proc filesystem
-file-system 	MFS		# Memory-based filesystem
-file-system	PTYFS		# /dev/pts/N support
+#file-system 	KERNFS		# kernel data-structure filesystem
+#file-system 	FDESC		# user file descriptor filesystem
+#file-system 	PROCFS		# /proc filesystem
+#file-system 	MFS		# Memory-based filesystem
+#file-system	PTYFS		# /dev/pts/N support
 #file-system	TMPFS		# Efficient memory file-system
 #file-system	UDF		# experimental - OSTA UDF CD/DVD file-system
 file-system 	MSDOSFS		# FAT support
 #file-system 	NULLFS 		# loopback file system
 
 # File system options
-# options 	FFS_EI		# FFS Endian Independent support
-options 	QUOTA		# legacy UFS quotas
-options 	QUOTA2		# new, in-filesystem UFS quotas
+options 	FFS_EI		# FFS Endian Independent support
+#options 	QUOTA		# legacy UFS quotas
+#options 	QUOTA2		# new, in-filesystem UFS quotas
 options 	UFS_DIRHASH	# UFS Large Directory Hashing
 options 	UFS_EXTATTR	# Extended attribute support for UFS1
 #options 	NFSSERVER	# Network File System server
+no options	WAPBL		# File system journaling support
+no options	HAVE_NBTOOL_CONFIG_H
 
 # Networking options
 options 	INET		# Internet protocols
@@ -106,8 +110,10 @@ options		DEBUGPRINT
 options 	DDB		# Kernel Dynamic Debugger
 # options 	KGDB	# don't enable this, compile fails at trap.c
 makeoptions	DEBUG="-g"	# netbsd.gdb with full debugging symbols
+makeoptions	COPY_SYMTAB=1	# size for embedded symbol table
 #options 	ATADEBUG
 #options 	ATADEBUG_MASK=0xffff
+options		DEBUG_FFS_MOUNT	# enable fast filesystem mount debug print
 
 #options 	NFS_BOOT_DHCP
 
@@ -141,11 +147,11 @@ wd*			at atabus? drive?
 # pseudo-device   accf_http		# "httpready" accept filter
 
 pseudo-device	pty			# pseudo ptys
-pseudo-device	sl			# SLIP network interfaces
+#pseudo-device	sl			# SLIP network interfaces
 pseudo-device	ppp			# PPP network interfaces
 #pseudo-device	pppoe			# PPP over Ethernet (RFC 2516)
 #pseudo-device	bpfilter		# Berkeley packet filter
-pseudo-device	carp			# Common Address Redundancy Protocol
+#pseudo-device	carp			# Common Address Redundancy Protocol
 #pseudo-device	bridge			# simple inter-network bridging
 #pseudo-device	vether			# Virtual Ethernet for bridge
 pseudo-device	vnd			# vnode pseudo-disks
