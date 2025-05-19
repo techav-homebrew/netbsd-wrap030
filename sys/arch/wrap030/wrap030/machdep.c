@@ -73,6 +73,7 @@ __KERNEL_RCSID(0, "$NetBSD: machdep.c,v 1.72 2021/10/09 20:00:41 tsutsui Exp $")
 #include <sys/module.h>
 #include <sys/cpu.h>
 #include <sys/kgdb.h>
+#include <sys/boot_flag.h>
 
 #include <sys/bus.h>
 
@@ -103,6 +104,10 @@ __KERNEL_RCSID(0, "$NetBSD: machdep.c,v 1.72 2021/10/09 20:00:41 tsutsui Exp $")
 #include <wrap030/dev/zsvar.h>
 */
 /* #include <machine/wrap030_debugc.h> */
+
+#ifndef	WRAP030_BOOTHOWTO
+#define WRAP030_BOOTHOWTO 0x000a0003
+#endif
 
 #include <dev/ic/comreg.h>
 #include <dev/ic/comvar.h>
@@ -245,6 +250,9 @@ void wrap030_init(void)
 	printf("wrap030_init() starting initmsgbuf()\r\n");
 	#endif
 	initmsgbuf(msgbufaddr, m68k_round_page(MSGBUFSIZE));
+
+	boothowto=WRAP030_BOOTHOWTO;
+	printf("wrap030_init() boothowto: %08x\r\n",boothowto);
 
 	#ifdef DEBUG_BOOTSTRAP_C
 	debugPrintStr("wrap030_init() done. ");

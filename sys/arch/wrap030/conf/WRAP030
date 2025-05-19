@@ -26,6 +26,8 @@ makeoptions	COPTS="-O2 -fno-reorder-blocks -fno-omit-frame-pointer"
 	# See share/mk/sys.mk. -fno-omit-frame-pointer is necessary for
 	# backtraces in DDB.
 
+options		WRAP030_BOOTHOWTO=0x000a0003
+
 # Need to set locally
 maxusers	8
 
@@ -48,9 +50,9 @@ options 	BUFQ_PRIOCSCAN
 
 include 	"conf/compat_netbsd09.config"
 
-#options 	SYSVSHM		# System V-style shared memory
-#options 	SYSVSEM		# System V-style semaphores
-#options 	SYSVMSG		# System V-style message queues
+options 	SYSVSHM		# System V-style shared memory
+options 	SYSVSEM		# System V-style semaphores
+options 	SYSVMSG		# System V-style message queues
 options 	KTRACE		# system call tracing support
 #options 	NKMEMCLUSTERS=1024	# 4K pages in kernel malloc pool
 options 	COMPAT_SUNOS
@@ -108,12 +110,12 @@ options 	DIAGNOSTIC	# Extra kernel sanity checks
 options 	DEBUG		# Enable misc. kernel debugging code
 options		DEBUGPRINT
 options 	DDB		# Kernel Dynamic Debugger
-# options 	KGDB	# don't enable this, compile fails at trap.c
+#options 	KGDB		#
 makeoptions	DEBUG="-g"	# netbsd.gdb with full debugging symbols
 makeoptions	COPY_SYMTAB=1	# size for embedded symbol table
 #options 	ATADEBUG
 #options 	ATADEBUG_MASK=0xffff
-options		DEBUG_FFS_MOUNT	# enable fast filesystem mount debug print
+#options	DEBUG_FFS_MOUNT	# enable fast filesystem mount debug print
 
 #options 	NFS_BOOT_DHCP
 
@@ -138,7 +140,7 @@ com7		at mainbus0
 # ATA disk drivers
 wdc0		at mainbus0
 atabus* 	at wdc? channel?
-wd*			at atabus? drive?
+wd*		at atabus? drive?
 # atapibus*	at atabus?
 # cd*			at atapibus? drive? 
 

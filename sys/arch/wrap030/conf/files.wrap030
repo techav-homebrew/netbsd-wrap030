@@ -7,6 +7,8 @@ maxpartitions 8
 
 defflag				PANICBUTTON
 
+defparam                        WRAP030_BOOTHOWTO
+
 maxusers 2 8 64
 
 # NOTE!  The order of these lines is significant!  Don't change them
