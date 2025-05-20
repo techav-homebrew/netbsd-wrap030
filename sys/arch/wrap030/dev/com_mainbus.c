@@ -129,7 +129,7 @@ com_mainbus_attach(device_t parent, device_t self, void *aux)
      * I have no idea what interval this should be set to. I'm guessing this
      * will be a multiple of the hardware timer interval. 
      */
-    sc->sc_poll_ticks = 10;
+    sc->sc_poll_ticks = 3;
 
     /* another function from com.c; this one will initialize the device */
     /* printf("com_mainbus_attach() com_attach_subr(%p)\r\n",sc); */
