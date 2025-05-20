@@ -13,7 +13,7 @@ device-major	log		char 6
 device-major	ccd		char 7   block 1	ccd
 device-major	ipl		char 8			ipfilter
 device-major	vnd		char 9   block 2	vnd
-device-major	ttyC		char 10			ttyC
+#device-major	ttyC		char 10			ttyC
 device-major	filedesc	char 11
 device-major	bpf		char 12			bpfilter
 device-major	tun		char 13			tun
