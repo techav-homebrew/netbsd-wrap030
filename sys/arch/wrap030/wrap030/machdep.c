@@ -106,7 +106,8 @@ __KERNEL_RCSID(0, "$NetBSD: machdep.c,v 1.72 2021/10/09 20:00:41 tsutsui Exp $")
 /* #include <machine/wrap030_debugc.h> */
 
 #ifndef	WRAP030_BOOTHOWTO
-#define WRAP030_BOOTHOWTO 0x000a0003
+/* #define WRAP030_BOOTHOWTO 0x000a0003 */
+#define WRAP030_BOOTHOWTO 0x000a0001
 #endif
 
 #include <dev/ic/comreg.h>
@@ -737,8 +738,8 @@ cpu_exec_aout_makecmds(struct lwp *l, struct exec_package *epp)
 int
 mm_md_physacc(paddr_t pa, vm_prot_t prot)
 {
-
-	return (pa < lowram || pa >= 0xfffffffc) ? EFAULT : 0;
+	/* return (pa < lowram || pa >= 0xfffffffc) ? EFAULT : 0; */
+	return (pa < 0x7ffffffc) ? 0 : EFAULT;
 }
 
 #ifdef MODULAR
