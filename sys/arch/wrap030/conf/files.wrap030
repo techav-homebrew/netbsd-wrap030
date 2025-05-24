@@ -91,3 +91,5 @@ include	"compat/sunos/files.sunos"
 file	arch/m68k/m68k/sunos_machdep.c	compat_sunos
 
 include "arch/wrap030/conf/majors.wrap030"
+
+file    arch/wrap030/wrap030/md_hooks.c
