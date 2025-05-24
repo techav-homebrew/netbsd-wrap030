@@ -30,42 +30,13 @@ wrap030_start()
 	fi
 	printf "OK\n"
 
-	printf "mountall ... "
-	mount -a
-	printf "OK\n"
-
-	printf "ldconfig ... "
-	if [ -f ${ldconfig_command} ]; then
-		echo "Creating a.out runtime link editor directory cache."
-		${ldconfig_command} ${rc_flags}
-	fi
+	printf "securelevel ... "
+	osecurelevel=$(sysctl -n kern.securelevel 2>&-)
+	sysctl -w kern.securelevel=1
 	printf "OK\n"
 
 	printf "ttys ... "
 	ttyflags -a
-	printf "OK\n"
-
-	printf "setting securelevel ... "
-	osecurelevel=$(sysctl -n kern.securelevel 2>&-)
-	if [ $? != 0 ]; then
-		echo "Can't set securelevel. (kern.securelevel sysctl not present.)"
-		exit 1
-	fi
-
-	if [ -n "$securelevel" -a "$securelevel" != "$osecurelevel" ]; then
-		if [ "$securelevel" -lt "$osecurelevel" ]; then
-			echo "Can't lower securelevel."
-			exit 1
-		else
-			echo -n "Setting securelevel: "
-			sysctl -w kern.securelevel=$securelevel
-		fi
-	else
-		if [ "$osecurelevel" = 0 ]; then
-			echo -n "Setting securelevel: "
-			sysctl -w kern.securelevel=1
-		fi
- 	fi
 	printf "OK\n"
 
 	printf "wrap030_start done.\n"

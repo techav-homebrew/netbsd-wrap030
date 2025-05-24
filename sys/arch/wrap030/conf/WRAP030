@@ -119,6 +119,8 @@ makeoptions	COPY_SYMTAB=1	# size for embedded symbol table
 
 #options 	NFS_BOOT_DHCP
 
+options		RND_COM
+
 config		netbsd root on ? type ?
 
 mainbus0	at root		# root "bus"
