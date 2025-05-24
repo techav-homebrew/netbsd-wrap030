@@ -15,32 +15,37 @@ PROG	bin/pwd
 PROG	bin/rm
 PROG	bin/sh
 PROG	bin/stty
+PROG    bin/kill
+PROG    bin/sleep
+PROG	bin/stty
 
 PROG	sbin/chown	bin/chgrp
 PROG	sbin/disklabel
 PROG	sbin/dmesg
 PROG	sbin/fsck
 PROG	sbin/fsck_ffs
-PROG	sbin/ifconfig
 PROG	sbin/init
 PROG	sbin/mknod
 PROG	sbin/mount
 PROG	sbin/mount_ffs
 PROG	sbin/mount_nfs
 PROG	sbin/newfs	sbin/mount_mfs
-PROG	sbin/ping
 PROG	sbin/reboot	sbin/halt
-PROG	sbin/route
-PROG	sbin/swapctl
+PROG	sbin/swapctl	sbin/swapon
+PROG	sbin/sysctl
 PROG	sbin/umount
+PROG    sbin/shutdown
+PROG    sbin/ttyflags
 
 PROG	usr/bin/ftp
 PROG	usr/bin/gzip	usr/bin/gzcat usr/bin/gunzip
 PROG	usr/bin/sed
 PROG	usr/bin/tset
+# PROG    usr/bin/passwd
+# PROG    usr/bin/login
+PROG	usr/bin/more
 
 PROG	usr/sbin/chroot
-PROG	usr/sbin/installboot
 
 # init invokes the shell as -sh
 ARGVLN	sh -sh
@@ -48,11 +53,9 @@ ARGVLN	sh -sh
 SPECIAL	disklabel	srcdir	distrib/utils/x_disklabel
 SPECIAL	fsck_ffs	srcdir	distrib/utils/x_fsck_ffs
 SPECIAL	gzip		srcdir	distrib/utils/x_gzip
-SPECIAL	ifconfig	srcdir	distrib/utils/x_ifconfig
 SPECIAL	newfs		srcdir	distrib/utils/x_newfs
-SPECIAL	ping		srcdir	distrib/utils/x_ping
-SPECIAL	route		srcdir	distrib/utils/x_route
 SPECIAL	umount		srcdir	distrib/utils/x_umount
+SPECIAL	more		srcdir	distrib/utils/more
 
 LIBS	libhack.o -lbz2 -lutil -lcurses -lterminfo -lcrypt -ll -lm -lz -lprop
 
@@ -62,9 +65,28 @@ LIBS	libhack.o -lbz2 -lutil -lcurses -lterminfo -lcrypt -ll -lm -lz -lprop
 # various files that we need in /etc for the install
 COPY	${NETBSDSRCDIR}/etc/group		etc/group
 COPY	${NETBSDSRCDIR}/etc/master.passwd	etc/master.passwd
+COPY	${DESTDIR}/etc/passwd			etc/passwd
 COPY	${NETBSDSRCDIR}/etc/netconfig		etc/netconfig
 COPY	${DISTRIBDIR}/common/protocols		etc/protocols
 COPY	${DISTRIBDIR}/common/services		etc/services
+COPY	${DESTDIR}/etc/pwd.db			etc/pwd.db
+COPY	${DESTDIR}/etc/spwd.db			etc/spwd.db
+
+COPY    ${DESTDIR}/etc/ttys                     etc/ttys
+
+COPY    ${DESTDIR}/dev/MAKEDEV                  dev/MAKEDEV     555
+COPY    ${DESTDIR}/dev/MAKEDEV.local            dev/MAKEDEV.local     555
+
+COPY    ${DESTDIR}/etc/rc                       etc/rc
+COPY    ${DESTDIR}/etc/rc.conf                  etc/rc.conf
+COPY    ${DESTDIR}/etc/rc.local                 etc/rc.local
+COPY    ${DESTDIR}/etc/rc.shutdown              etc/rc.shutdown
+COPY    ${DESTDIR}/etc/rc.subr                  etc/rc.subr
+
+# COPY    ${NETBSDSRCDIR}/etc/rc.d/wrap030        etc/rc.d/wrap030
+
+# various files that we need in /etc for the install
+SYMLINK	/tmp/fstab.shadow		etc/fstab
 
 # and the boot script
 COPY	${CURDIR}/dot.profile		.profile

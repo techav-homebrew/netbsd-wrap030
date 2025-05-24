@@ -56,7 +56,8 @@ if [ "X${DONEPROFILE}" = "X" ]; then
 		echo "" >& 2
 		echo "Setting terminal type.  Options:" >& 2
 		echo "" >& 2
-		echo "  vt100   for dumb serial terminal" >& 2
+		echo "  dumb    for dumb serial terminal" >& 2
+		echo "  vt100   for standard serial terminal" >& 2
 		echo "  xterm   for xterm." >& 2
 		echo "" >& 2
 		eval `tset -s -m ":?$TERM"`
@@ -66,8 +67,8 @@ if [ "X${DONEPROFILE}" = "X" ]; then
 	done
 
 	# set up some sane defaults
-	echo 'erase ^?, werase ^W, kill ^U, intr ^C'
-	stty newcrt werase ^W intr ^C kill ^U erase ^? 9600
+	echo 'erase ^H, werase ^W, kill ^U, intr ^C'
+	stty newcrt werase ^W intr ^C kill ^U erase ^H 9600
 	echo ''
 
 	# mount the ramdisk read write

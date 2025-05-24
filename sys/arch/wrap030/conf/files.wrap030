@@ -64,6 +64,9 @@ file arch/wrap030/dev/wdc_mb.c          wdc_mb
 # Non-device files
 #
 
+# Memory Disk for ramdisk
+file	dev/md_root.c			memory_disk_hooks
+
 file	arch/wrap030/wrap030/autoconf.c
 file	arch/wrap030/wrap030/clock.c
 # file    arch/wrap030/wrap030/disksubr.c		disk
@@ -92,4 +95,4 @@ file	arch/m68k/m68k/sunos_machdep.c	compat_sunos
 
 include "arch/wrap030/conf/majors.wrap030"
 
-file    arch/wrap030/wrap030/md_hooks.c
+# file    arch/wrap030/wrap030/md_hooks.c
