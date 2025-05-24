@@ -41,6 +41,7 @@
 #include <sys/systm.h>
 #include <sys/device.h>
 #include <sys/tty.h>
+#include <sys/conf.h>
 
 #include <sys/bus.h>
 
@@ -121,6 +122,8 @@ com_mainbus_attach(device_t parent, device_t self, void *aux)
     /* com_init_regs is defined in com.c */
     /* printf("com_mainbus_attach() com_init_regs(%p,%p,%p,%p)\r\n",
         &sc->sc_regs, iot, ioh, iobase); */
+    sc->enabled = 1;
+    SET(sc->sc_hwflags,COM_HW_NOIEN);   /* no hw interrupts */
     com_init_regs(&sc->sc_regs, iot, ioh, iobase);
 
     sc->sc_frequency = COMFREQ;
