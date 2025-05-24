@@ -154,9 +154,12 @@ extern void sicinit(void*);
 
 
 /* Let's try to set up early console using the M6850 */
-volatile char * earlyConCom = (char *)0x80080000;
-volatile char * earlyConDat = (char *)0x80080004;
+/* volatile char * earlyConCom = (char *)0x80080000;
+volatile char * earlyConDat = (char *)0x80080004; */
+/* Let's try to set up early console using com0 */
+volatile char * earlyConBase = (char *)0x80300000;
 
+/*
 static void
 earlyputc(dev_t dev, int c)
 {
@@ -169,6 +172,21 @@ earlygetc(dev_t dev)
 {
 	while(!(*earlyConCom & 1));
 	return(*earlyConDat);
+}
+*/
+
+static void
+earlyputc(dev_t dev, int c)
+{
+	while(!(*(earlyConBase + 5) & (1 << 5)));
+	*earlyConBase = (char)c;
+}
+
+static int
+earlygetc(dev_t dev)
+{
+	while(!(*(earlyConBase + 5) & (1 << 0)));
+	return (int)(*earlyConBase);
 }
 
 static struct consdev earlycons = {
@@ -191,7 +209,15 @@ void wrap030_init(void)
 
 	delay_divisor = 1;
 
-	/* set up early console */
+	/* set up early console for com0 9600 8n1 no IRQ*/
+	*(earlyConBase + 2) = 0x06;
+	*(earlyConBase + 3) = 0x03;
+	*(earlyConBase + 1) = 0x00;
+	*(earlyConBase + 3) = 0x83;
+	*(earlyConBase + 0) = 0x0c;
+	*(earlyConBase + 1) = 0x00;
+	*(earlyConBase + 3) = 0x03;
+
 	cn_tab = &earlycons;
 	printf("wrap030_init() early console functional!\r\n");
 
@@ -307,15 +333,19 @@ consinit(void)
 	    (bus_addr_t)0x00300000, 9600, COMFREQ, COM_TYPE_NORMAL, (CREAD | CS8));*/
 	
 	comcnattach((bus_space_tag_t)WRAP030_BUS_SPACE_EIO,
-		(bus_addr_t)0x80300000, 115200, COMFREQ, COM_TYPE_NORMAL, (CREAD | CS8));
+		(bus_addr_t)0x80300000, 9600, COMFREQ, COM_TYPE_NORMAL, (CREAD | CS8));
 
 	printf("\r\n");
-    printf("                                ______ _____ ______\r\n");
-    printf(" _      __ _____ ____ _ ______ / __  //_   // __  /\r\n");
-    printf("| | /| / // ___// __ `// __  // / / / /_ < / / / / \r\n");
-    printf("| |/ |/ // /   / /_/ // /_/ // /_/ /___/ // /_/ /  \r\n");
-    printf("|__/|__//_/   /___,_// .___//_____//____//_____/   \r\n");
-    printf("------------------- /_/ -----------------------    \r\n");
+	printf("\\\\-__,------,___.\r\n");
+	printf(" \\\\        __,---`\r\n");
+	printf("  \\\\       `---,_.\r\n");
+	printf("   \\\\-,_____,.---`                   ______ _____ ______\r\n");
+	printf("    \\\\ _      __ ____ ____ _ ______ / __  //_   // __  /\r\n");
+	printf("     \\| | /| / // __// __ `// __  // / / / /_ < / / / /\r\n");
+	printf("      | |/ |/ // /  / /_/ // /_/ // /_/ /___/ // /_/ /\r\n");
+	printf("      |__/|__//_/  /___,_// .___//_____//____//_____/\r\n");
+	printf("      --\\\\-------------- /_/ -----------------------\r\n");
+	printf("         \\\\\r\n");
 	printf("Primary Console Initialized\r\n");
 	printf("Kernel initializing ... \r\n");
 	/*

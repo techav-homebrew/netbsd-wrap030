@@ -111,7 +111,7 @@ com_mainbus_attach(device_t parent, device_t self, void *aux)
     if(device_unit(self) == 0)
     {
         /* comcnattach is defined in sys/dev/ic/com.c */
-        comcnattach(iot, iobase, 115200, COMFREQ, COM_TYPE_NORMAL, (CREAD | CS8));
+        comcnattach(iot, iobase, 9600, COMFREQ, COM_TYPE_NORMAL, (CREAD | CS8));
     }
 
     /* map the bus space consumed by this device  */
