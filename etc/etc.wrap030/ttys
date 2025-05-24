@@ -7,13 +7,13 @@
 #
 # If the console is marked insecure, single-user requires
 # the root password.
-console "/usr/libexec/getty std.115200"   vt100 off secure
-constty "/usr/libexec/getty std.115200"   vt100 on secure
-tty00   "/usr/libexec/getty std.115200"   vt100 on secure       # 16550 com0
-tty01   "/usr/libexec/getty std.9600"   unknown on secure       # 16550 com1
-tty02   "/usr/libexec/getty std.9600"   unknown on secure       # 16550 com2
-tty03   "/usr/libexec/getty std.9600"   unknown on secure       # 16550 com3
-tty04   "/usr/libexec/getty std.9600"   unknown on secure       # 16550 com4
-tty05   "/usr/libexec/getty std.9600"   unknown on secure       # 16550 com5
-tty06   "/usr/libexec/getty std.9600"   unknown on secure       # 16550 com6
-tty07   "/usr/libexec/getty std.9600"   unknown on secure       # 16550 com7
+console	"/usr/libexec/getty std.115200"	vt100	off secure
+constty	"/usr/libexec/getty std.115200"	vt100	on secure
+tty00	"/usr/libexec/getty std.115200"	vt100	off secure	# 16550 com0
+tty01	"/usr/libexec/getty std.9600"	unknown	on secure	# 16550 com1
+tty02	"/usr/libexec/getty std.9600"	unknown	on secure	# 16550 com2
+tty03	"/usr/libexec/getty std.9600"	unknown	on secure	# 16550 com3
+tty04	"/usr/libexec/getty std.9600"	unknown	on secure	# 16550 com4
+tty05	"/usr/libexec/getty std.9600"	unknown	on secure	# 16550 com5
+tty06	"/usr/libexec/getty std.9600"	dialup	on
+tty07	"/usr/libexec/getty std.9600"	dialup	on
