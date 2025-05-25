@@ -98,6 +98,8 @@ __KERNEL_RCSID(0, "$NetBSD: machdep.c,v 1.72 2021/10/09 20:00:41 tsutsui Exp $")
 #include <dev/cons.h>
 #include <dev/mm.h>
 
+#include "opt_wrap030.h"
+
 /*
 #include <dev/ic/z8530reg.h>
 #include <machine/z8530var.h>

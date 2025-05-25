@@ -7,7 +7,7 @@ maxpartitions 8
 
 defflag				PANICBUTTON
 
-defparam                        WRAP030_BOOTHOWTO
+defparam opt_wrap030.h		WRAP030_BOOTHOWTO
 
 maxusers 2 8 64
 

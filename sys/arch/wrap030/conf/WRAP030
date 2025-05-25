@@ -26,7 +26,8 @@ makeoptions	COPTS="-O2 -fno-reorder-blocks -fno-omit-frame-pointer"
 	# See share/mk/sys.mk. -fno-omit-frame-pointer is necessary for
 	# backtraces in DDB.
 
-options		WRAP030_BOOTHOWTO=0x000a0003
+# set boot flags
+options		WRAP030_BOOTHOWTO="(RB_ASKNAME | RB_SINGLE | AB_VERBOSE | AB_DEBUG)"
 
 # Need to set locally
 maxusers	8
