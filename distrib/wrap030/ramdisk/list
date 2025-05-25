@@ -6,6 +6,8 @@ PROG	bin/cat
 PROG	bin/chmod
 PROG	bin/cp
 PROG	bin/df
+PROG    bin/dd
+PROG    bin/df
 PROG	bin/ln
 PROG	bin/ls
 PROG	bin/mkdir
@@ -18,6 +20,14 @@ PROG	bin/stty
 PROG    bin/kill
 PROG    bin/sleep
 PROG	bin/stty
+PROG    bin/ed
+
+# needed for init rc
+PROG    bin/date
+PROG    usr/bin/fmt
+PROG    bin/ps
+PROG    sbin/rcorder
+PROG    bin/expr
 
 PROG	sbin/chown	bin/chgrp
 PROG	sbin/disklabel
@@ -57,7 +67,14 @@ SPECIAL	newfs		srcdir	distrib/utils/x_newfs
 SPECIAL	umount		srcdir	distrib/utils/x_umount
 SPECIAL	more		srcdir	distrib/utils/more
 
-LIBS	libhack.o -lbz2 -lutil -lcurses -lterminfo -lcrypt -ll -lm -lz -lprop
+# LIBS	libhack.o -lbz2 -lutil -lcurses -lterminfo -lcrypt -ll -lm -lz -lprop
+LIBS    -lpam -lkrb5 -lkvm -lcom_err -lbz2 -lutil -lcurses -lterminfo -lcrypt
+LIBS    -ll -lprop -lz -lm
+# -lm  -lc 
+# LIBS    
+# LIBS    -lroken -lradius -lcrypto -lrpcsvc -lkafs -lskey
+# LIBS    -lrpcsvc -lc -lhx509 -lasn1 -lwind -lheimbase
+
 
 # COPY	${DESTDIR}/usr/mdec/uboot.lif	usr/mdec/uboot.lif
 # COPY	${DESTDIR}/usr/mdec/installboot	usr/mdec/installboot	555
